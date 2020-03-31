@@ -1,0 +1,2 @@
+# coronavirus-spain
+This repository contains a simple (and brief) exploratory data analysis focused on the crisis of the COVID-19 coronavirus pandemic in Spain and its different provinces.  The aim is to show the evolution of reported cases, deaths and recoveries using the new daily information of new cases, deaths or recoveries, their cumulative sum and their rate of variation (daily and cumulative).  The data are automatically extracted from the official source (epdata.es).
