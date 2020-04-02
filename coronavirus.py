@@ -194,7 +194,6 @@ def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
     last_day_to_plot = 75
 
     chart_data = pd.DataFrame({
-        xData: df_global[xData],
         yData: df_global[yData]
     })
     chart_data = chart_data.set_index(df_global['Period'])
