@@ -8,6 +8,7 @@ import time
 import matplotlib
 import streamlit as st
 import altair as alt
+import time
 
 # Functions
 @st.cache
@@ -162,6 +163,7 @@ def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
     st.write("### " + title, chart_data.sort_index())
     if yScale != 'log':
         st.line_chart(chart_data)
+
     # Dictionaries and constants
     day_init_quarantine = 44
     day14_init_quarantine = 59
@@ -193,13 +195,20 @@ def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
     first_day_to_plot = 33
     last_day_to_plot = 75
 
-    chart_data = pd.DataFrame({
+    datas = pd.DataFrame({
         yData: df_global[yData]
     })
-    chart_data = chart_data.set_index(df_global['Period'])
-    st.write("### " + title, chart_data.sort_index())
+    datas = datas.set_index(df_global['Period'])
+    st.write("### " + title, datas.sort_index())
+
+    lastRows = datas.iloc[:1]
     if yScale != 'log':
-        st.line_chart(chart_data)
+        chart = st.line_chart(lastRows)
+        for i in range(2,datas[yData].count()):
+            lastRows = datas.iloc[:i]
+            chart.add_rows(lastRows)
+            time.sleep(0.05)
+
     plt.figure(figsize=(20,10))
     plt.plot(df_global[xData], df_global[yData], color = 'navy', marker='o', linestyle='dashed',
     linewidth=2, markersize=12, label=labelData)
