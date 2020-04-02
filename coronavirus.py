@@ -160,7 +160,8 @@ def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
         })
     chart_data = chart_data.set_index(df_global['Period'])
     st.write("### " + title, chart_data.sort_index())
-    
+    if yScale != 'log':
+        st.line_chart(chart_data)
     # Dictionaries and constants
     day_init_quarantine = 44
     day14_init_quarantine = 59
@@ -198,7 +199,8 @@ def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
     })
     chart_data = chart_data.set_index(df_global['Period'])
     st.write("### " + title, chart_data.sort_index())
-
+    if yScale != 'log':
+        st.line_chart(chart_data)
     plt.figure(figsize=(20,10))
     plt.plot(df_global[xData], df_global[yData], color = 'navy', marker='o', linestyle='dashed',
     linewidth=2, markersize=12, label=labelData)
@@ -261,7 +263,7 @@ def main():
     if page == 'Tabla con los resultados obtenidos':
         TodaysDate = time.strftime("%d-%m-%Y")
         df_table = df_global
-        df_table.set_index("Period")
+        df_table = df_table.set_index("Period")
         data_table = df_table.loc[df_table.index]
         st.write("### Tabla con los resultados obtenidos a dia " + TodaysDate, data_table.sort_index())
         # Select only the days after the first 50 deaths in Spain
