@@ -7,6 +7,7 @@ import requests
 import time
 import matplotlib
 import streamlit as st
+import altair as alt
 
 # Functions
 @st.cache
@@ -39,7 +40,7 @@ def getData():
     day14_init_quarantine = 59
     day14_strict_quarantine = 73
     first_day_to_plot = 33
-    last_day_to_plot = 80
+    last_day_to_plot = 75
     
     # Create raw dataframe
 
@@ -114,8 +115,8 @@ def getData():
     df_global['Recovered_VariationRate_Spain'] = df_global['Recovered_Spain'].pct_change() * 100
     df_global['RecoveredAccum_VariationRate_Spain'] = df_global['RecoveredAccum_Spain'].pct_change() * 100
 
-    mask = (df_global['Day'] > first_day_to_plot)
-    df_global = df_global.loc[mask]
+    # mask = (df_global['Day'] > first_day_to_plot)
+    # df_global = df_global.loc[mask]
     df_global.head()
     return df_global
 
@@ -145,13 +146,27 @@ def fromAccumToSingleValues(x):
         y[i] = x[i] - x[i-1]
     return y
 
-def createOverviewPlot(df_global, yCases,yDeaths,yRecovered,title,yScale):
+def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
+    if yRecovered != 'null':
+        chart_data = pd.DataFrame({
+            'Cases': df_global[yCases],
+            'Death': df_global[yDeaths],
+            'Recovered': df_global[yRecovered]
+        })
+    else:
+        chart_data = pd.DataFrame({
+            'Cases': df_global[yCases],
+            'Death': df_global[yDeaths]
+        })
+    chart_data = chart_data.set_index(df_global['Period'])
+    st.write("### " + title, chart_data.sort_index())
+    
     # Dictionaries and constants
     day_init_quarantine = 44
     day14_init_quarantine = 59
     day14_strict_quarantine = 73
     first_day_to_plot = 33
-    last_day_to_plot = 80
+    last_day_to_plot = 75
 
     plt.figure(figsize=(20,10))
     plt.plot(df_global['Day'], df_global[yCases], color = 'r', marker='o', linestyle='solid', linewidth=2, markersize=5, label='Cases')
@@ -175,7 +190,14 @@ def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
     day14_init_quarantine = 59
     day14_strict_quarantine = 73
     first_day_to_plot = 33
-    last_day_to_plot = 80
+    last_day_to_plot = 75
+
+    chart_data = pd.DataFrame({
+        xData: df_global[xData],
+        yData: df_global[yData]
+    })
+    chart_data = chart_data.set_index(df_global['Period'])
+    st.write("### " + title, chart_data.sort_index())
 
     plt.figure(figsize=(20,10))
     plt.plot(df_global[xData], df_global[yData], color = 'navy', marker='o', linestyle='dashed',
