@@ -276,11 +276,11 @@ def main():
         # Select only the days after the first 50 deaths in Spain
 
     elif page == 'Spain':
-        st.write("### Grafica de casos, muertes y recuperaciones acumulados en Spain")
+        st.write("### Cases, deaths and recoveries accumulated in Spain")
         createOverviewPlot(df_global, 'CasesAccum_Spain','DeathsAccum_Spain','RecoveredAccum_Spain','Spain','log')
 
     elif page == 'Madrid':
-        st.write("### Casos, muertes y recuperaciones acumulados en Madrid")
+        st.write("### Cases, deaths and recoveries accumulated in Madrid")
         createOverviewPlot(df_global, 'CasesAccum_Madrid','DeathsAccum_Madrid','null','Madrid','log')
 
     elif page == 'Daily cases - Spain':
