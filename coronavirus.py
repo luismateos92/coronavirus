@@ -165,7 +165,6 @@ def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
     chart = st.line_chart(chart_data.iloc[:1])
     for i in range(2,df_global['Day'].count()):
         chart.add_rows(chart_data.iloc[:i])
-        print(chart_data.iloc[:i])
         time.sleep(0.05)
     chart.add_rows(chart_data.tail(1))
         
