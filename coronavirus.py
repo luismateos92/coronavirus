@@ -162,13 +162,12 @@ def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
     chart_data = chart_data.set_index(df_global['Period'])
     st.write("### " + title, chart_data.sort_index())
 
-    if yScale != 'log':
-        chart = st.line_chart(chart_data.iloc[:1])
-        for i in range(2,df_global['Day'].count()):
-            chart.add_rows(chart_data.iloc[:i])
-            print(chart_data.iloc[:i])
-            time.sleep(0.05)
-        chart.add_rows(chart_data.tail(1))
+    chart = st.line_chart(chart_data.iloc[:1])
+    for i in range(2,df_global['Day'].count()):
+        chart.add_rows(chart_data.iloc[:i])
+        print(chart_data.iloc[:i])
+        time.sleep(0.05)
+    chart.add_rows(chart_data.tail(1))
         
 
     # Dictionaries and constants
@@ -178,21 +177,22 @@ def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
     first_day_to_plot = 33
     last_day_to_plot = 75
 
-    plt.figure(figsize=(20,10))
-    plt.plot(df_global['Day'], df_global[yCases], color = 'r', marker='o', linestyle='solid', linewidth=2, markersize=5, label='Cases')
-    plt.plot(df_global['Day'], df_global[yDeaths], color = 'k', marker='o', linestyle='solid', linewidth=2, markersize=5, label='Deaths')
-    if yRecovered != 'null':
-        plt.plot(df_global['Day'], df_global[yRecovered], color = 'g', marker='o', linestyle='solid', linewidth=2, markersize=5, label='Recovered')
-    plt.title(title, fontsize = 20)
-    plt.xlabel('Day', fontsize=15)
-    plt.yscale(yScale)
-    plt.axvline(day_init_quarantine, 0, 1, color = 'g', alpha = .5, linewidth=2, linestyle = 'dashed',label = 'Day 0 "soft" quarantine')
-    plt.axvline(day14_init_quarantine, 0, 1, color = 'r', alpha = .5, linewidth=2, linestyle = 'dashed',label = 'Day 0 "strict" quarantine')
-    plt.axvspan(day_init_quarantine, day14_init_quarantine, facecolor='g', alpha=0.15)
-    plt.axvspan(day14_init_quarantine, day14_strict_quarantine, facecolor='r', alpha=0.15)
-    plt.xlim(first_day_to_plot,last_day_to_plot)
-    plt.legend(fontsize=12)
-    st.pyplot()
+    if yScale == 'log':
+        plt.figure(figsize=(20,10))
+        plt.plot(df_global['Day'], df_global[yCases], color = 'r', marker='o', linestyle='solid', linewidth=2, markersize=5, label='Cases')
+        plt.plot(df_global['Day'], df_global[yDeaths], color = 'k', marker='o', linestyle='solid', linewidth=2, markersize=5, label='Deaths')
+        if yRecovered != 'null':
+            plt.plot(df_global['Day'], df_global[yRecovered], color = 'g', marker='o', linestyle='solid', linewidth=2, markersize=5, label='Recovered')
+        plt.title(title + ' (log scale)', fontsize = 20)
+        plt.xlabel('Day', fontsize=15)
+        plt.yscale(yScale)
+        plt.axvline(day_init_quarantine, 0, 1, color = 'g', alpha = .5, linewidth=2, linestyle = 'dashed',label = 'Day 0 "soft" quarantine')
+        plt.axvline(day14_init_quarantine, 0, 1, color = 'r', alpha = .5, linewidth=2, linestyle = 'dashed',label = 'Day 0 "strict" quarantine')
+        plt.axvspan(day_init_quarantine, day14_init_quarantine, facecolor='g', alpha=0.15)
+        plt.axvspan(day14_init_quarantine, day14_strict_quarantine, facecolor='r', alpha=0.15)
+        plt.xlim(first_day_to_plot,last_day_to_plot)
+        plt.legend(fontsize=12)
+        st.pyplot()
 
 def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
     # Dictionaries and constants
@@ -209,215 +209,159 @@ def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
     st.write("### " + title, datas.sort_index())
 
     lastRows = datas.iloc[:1]
-    if yScale != 'log':
-        chart = st.line_chart(lastRows)
-        for i in range(2,df_global['Day'].count()):
-            lastRows = datas.iloc[:i]
-            chart.add_rows(lastRows)
-            time.sleep(0.05)
-        chart.add_rows(datas[yData].tail(1))
+    chart = st.line_chart(lastRows)
+    for i in range(2,df_global['Day'].count()):
+        lastRows = datas.iloc[:i]
+        chart.add_rows(lastRows)
+        time.sleep(0.05)
+    chart.add_rows(datas[yData].tail(1))
 
-    plt.figure(figsize=(20,10))
-    plt.plot(df_global[xData], df_global[yData], color = 'navy', marker='o', linestyle='dashed',
-    linewidth=2, markersize=12, label=labelData)
-    plt.axvline(day_init_quarantine, 0, 1, color = 'g', alpha = .5, label = 'Day 0 "soft" quarantine')
-    plt.axvline(day14_init_quarantine, 0, 1, color = 'r', alpha = .5, label = 'Day 0 "strict" quarantine')
-    plt.axvspan(day_init_quarantine, day14_init_quarantine, facecolor='g', alpha=0.15)
-    plt.axvspan(day14_init_quarantine, day14_strict_quarantine, facecolor='r', alpha=0.15)
-    plt.xlim(first_day_to_plot,last_day_to_plot)
-    plt.title(title, fontsize = 24)
-    plt.xlabel('Day', fontsize=20)
-    plt.ylabel(yLabel, fontsize=20)
-    plt.legend(fontsize=15)
-    plt.yscale(yScale)
-    return st.pyplot()
+    if yScale == 'log':
+        title = title + ' (log scale)'
+
+    if yScale == 'log' or yLabel == 'Variation rate (%)':
+        plt.figure(figsize=(20,10))
+        plt.plot(df_global[xData], df_global[yData], color = 'navy', marker='o', linestyle='dashed',
+        linewidth=2, markersize=12, label=labelData)
+        plt.axvline(day_init_quarantine, 0, 1, color = 'g', alpha = .5, label = 'Day 0 "soft" quarantine')
+        plt.axvline(day14_init_quarantine, 0, 1, color = 'r', alpha = .5, label = 'Day 0 "strict" quarantine')
+        plt.axvspan(day_init_quarantine, day14_init_quarantine, facecolor='g', alpha=0.15)
+        plt.axvspan(day14_init_quarantine, day14_strict_quarantine, facecolor='r', alpha=0.15)
+        plt.xlim(first_day_to_plot,last_day_to_plot)
+        plt.title(title, fontsize = 24)
+        plt.xlabel('Day', fontsize=20)
+        plt.ylabel(yLabel, fontsize=20)
+        plt.legend(fontsize=15)
+        plt.yscale(yScale)
+        st.pyplot()
 
 
 def main():
-    st.title('Coronavirus COVID-19 en Spain y Madrid')
+    TodaysDate = time.strftime("%d-%m-%Y")
+
+    st.title('COVID-19 in Spain and Madrid on ' + TodaysDate)
 
     df_global = getData()
 
-    page = st.sidebar.selectbox("Elige una pagina", [
-        'Tabla con los resultados obtenidos',
-        'Grafica de casos, muertes y recuperaciones acumulados en Spain',
-        'Grafica de casos, muertes y recuperaciones acumulados en Spain (log scale)',
-        'Grafica de casos, muertes y recuperaciones acumulados en Madrid',
-        'Grafica de casos, muertes y recuperaciones acumulados en Madrid (log scale)',
-        'Grafica de casos en Spain',
-        'Grafica de casos en Spain (log scale)',
-        'Grafica de casos acumulados en Spain',
-        'Grafica de casos acumulados en Spain (log scale)',
-        'Grafica de variacion de casos en Spain',
-        'Grafica de variacion para casos acumulados en Spain',
-        'Grafica de muertes en Spain',
-        'Grafica de muertes en Spain (log scale)',
-        'Grafica de muertes acumuladas en Spain',
-        'Grafica de muertes acumuladas en Spain (log scale)',
-        'Grafica de variacion de muertes es Spain',
-        'Grafica de variacion de muertes en Spain (log scale)',
-        'Grafica de recuperaciones en Spain',
-        'Grafica de recuperaciones en Spain (log scale)',
-        'Grafica de recuperaciones acumuladas en Spain',
-        'Grafica de recuperaciones acumuladas en Spain (log scale)',
-        'Grafica de variaciones de recuperacion en Spain',
-        'Grafica de variaciones de recuperacion es Spain (log scale)',
-        'Grafica de casos en Madrid',
-        'Grafica de casos en Madrid (log scale)',
-        'Grafica de casos acumulados en Madrid',
-        'Grafica de casos acumulados en Madrid',
-        'Grafica de variaciones de casos en Madrid',
-        'Grafica de variaciones de casos en Madrid (log scale)',
-        'Grafica de muertos en Madrid',
-        'Grafica de muertos en Madrid (log scale)',
-        'Grafica de muertos acumulados en Madrid',
-        'Grafica de muertos acumulados en Madrid (log scale)',
-        'Grafica de variaciones de muertos en Madrid',
-        'Grafica de variaciones de muertos en Madrid (log scale)'
+    page = st.sidebar.selectbox("Choose a page", [
+        'Table with the results obtained',
+        'Spain',
+        'Madrid',
+        'Daily cases - Spain',
+        'Accumulated daily cases - Spain',
+        'Variation rate (daily cases) - Spain',
+        'Variation rate (accumulated daily cases) - Spain',
+        'Daily deaths - Spain',
+        'Accumulated daily deaths - Spain',
+        'Variation rate (daily deaths) - Spain
+        'Variation rate (accumulated daily deaths) - Spain',
+        'Daily recovered - Spain',
+        'Accumulated daily recovered - Spain',
+        'Variation rate (daily recovered) - Spain',
+        'Variation rate (accumulated daily recovered) - Spain',
+        'Daily cases - Madrid',
+        'Accumulated daily cases - Madrid',
+        'Variation rate (daily cases) - Madrid',
+        'Variation rate (accumulated daily cases) - Madrid',
+        'Daily deaths - Madrid',
+        'Accumulated daily deaths - Madrid',
+        'Variation rate (daily deaths) - Madrid',
+        'Variation rate (accumulated daily deaths) - Madrid'
     ])
 
-    if page == 'Tabla con los resultados obtenidos':
-        TodaysDate = time.strftime("%d-%m-%Y")
+    if page == 'Table with the results obtained':
         df_table = df_global
         df_table = df_table.set_index("Period")
         data_table = df_table.loc[df_table.index]
-        st.write("### Tabla con los resultados obtenidos a dia " + TodaysDate, data_table.sort_index())
+        st.write("### Table with the results obtained to date " + TodaysDate, data_table.sort_index())
         # Select only the days after the first 50 deaths in Spain
 
-    elif page == 'Grafica de casos, muertes y recuperaciones acumulados en Spain':
+    elif page == 'Spain':
         st.write("### Grafica de casos, muertes y recuperaciones acumulados en Spain")
-        createOverviewPlot(df_global, 'CasesAccum_Spain','DeathsAccum_Spain','RecoveredAccum_Spain','Spain','linear')
+        createOverviewPlot(df_global, 'CasesAccum_Spain','DeathsAccum_Spain','RecoveredAccum_Spain','Spain','log')
 
-    elif page == 'Grafica de casos, muertes y recuperaciones acumulados en Spain (log scale)':
-        st.write("### Grafica de casos, muertes y recuperaciones acumulados en Spain (log scale)")
-        createOverviewPlot(df_global, 'CasesAccum_Spain','DeathsAccum_Spain','RecoveredAccum_Spain','Spain (log scale)','log')
+    elif page == 'Madrid':
+        st.write("### Casos, muertes y recuperaciones acumulados en Madrid")
+        createOverviewPlot(df_global, 'CasesAccum_Madrid','DeathsAccum_Madrid','null','Madrid','log')
 
-    elif page == 'Grafica de casos, muertes y recuperaciones acumulados en Madrid':
-        st.write("### Grafica de casos, muertes y recuperaciones acumulados en Madrid")
-        createOverviewPlot(df_global, 'CasesAccum_Madrid','DeathsAccum_Madrid','null','Madrid','linear')
+    elif page == 'Daily cases - Spain':
+        st.write("### Daily cases - Spain")
+        createSinglePlot(df_global, 'Day', 'Cases_Spain','Cases','Daily cases - Spain', 'Cases','log')
 
-    elif page == 'Grafica de casos, muertes y recuperaciones acumulados en Madrid (log scale)':
-        st.write("### Grafica de casos, muertes y recuperaciones acumulados en Madrid (log scale)")
-        createOverviewPlot(df_global, 'CasesAccum_Madrid','DeathsAccum_Madrid','null','Madrid (log scale)','log')
+    elif page == 'Accumulated daily cases - Spain':
+        st.write("### Accumulated daily cases - Spain")
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Spain','Cases','Accumulated daily cases - Spain', 'Cases','log')
 
-    elif page == 'Grafica de casos en Spain':
-        st.write("### Grafica de casos en Spain")
-        createSinglePlot(df_global, 'Day', 'Cases_Spain','Cases','Daily cases - Spain', 'Cases','linear')
-
-    elif page == 'Grafica de casos en Spain (log scale)':
-        st.write("### Grafica de casos en Spain (log scale)")
-        createSinglePlot(df_global, 'Day', 'Cases_Spain','Cases','Daily cases - Spain (log scale)', 'Cases','log')
-
-    elif page == 'Grafica de casos acumulados en Spain':
-        st.write("### Grafica de casos acumulados en Spain")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Spain','Cases','Accumulated daily cases - Spain', 'Cases','linear')
-
-    elif page == 'Grafica de casos acumulados en Spain (log scale)':
-        st.write("### Grafica de casos acumulados en Spain (log scale)")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Spain','Cases','Accumulated daily cases - Spain (log scale)', 'Cases','log')
-
-    elif page == 'Grafica de variacion de casos en Spain':
-        st.write("### Grafica de variacion de casos en Spain")
+    elif page == 'Variation rate (daily cases) - Spain':
+        st.write("### Variation rate (daily cases) - Spain")
         createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Spain','Variation rate','Variation rate (daily cases) - Spain', 'Variation rate (%)','linear')
 
-    elif page == 'Grafica de variacion para casos acumulados en Spain':
-        st.write("### Grafica de variacion para casos acumulados en Spain")
+    elif page == 'Variation rate (accumulated daily cases) - Spain':
+        st.write("### Variation rate (accumulated daily cases) - Spain")
         createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Spain','Variation rate','Variation rate (accumulated daily cases) - Spain', 'Variation rate (%)','linear')
 
-    elif page == 'Grafica de muertes en Spain':
-        st.write("### Grafica de muertes en Spain")
-        createSinglePlot(df_global, 'Day', 'Deaths_Spain','Deaths','Daily deaths - Spain', 'Deaths','linear')
+    elif page == 'Daily deaths - Spain':
+        st.write("### Daily deaths - Spain")
+        createSinglePlot(df_global, 'Day', 'Deaths_Spain','Deaths','Daily deaths - Spain', 'Deaths','log')
 
-    elif page == 'Grafica de muertes en Spain (log scale)':
-        st.write("### Grafica de muertes en Spain (log scale)")
-        createSinglePlot(df_global, 'Day', 'Deaths_Spain','Deaths','Daily deaths - Spain (log scale)', 'Deaths','log')
+    elif page == 'Accumulated daily deaths - Spain':
+        st.write("### Accumulated daily deaths - Spain")
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Spain','Deaths','Accumulated daily deaths - Spain', 'Deaths','log')
 
-    elif page == 'Grafica de muertes acumuladas en Spain':
-        st.write("### Grafica de muertes acumuladas en Spain")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Spain','Deaths','Accumulated daily deaths - Spain', 'Deaths','linear')
-
-    elif page == 'Grafica de muertes acumuladas en Spain (log scale)':
-        st.write("### Grafica de muertes acumuladas en Spain (log scale)")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Spain','Deaths','Accumulated daily deaths - Spain (log scale)', 'Deaths','log')
-
-    elif page == 'Grafica de variacion de muertes es Spain':
-        st.write("### Grafica de variacion de muertes es Spain")
+    elif page == 'Variation rate (daily deaths) - Spain:
+        st.write("### Variation rate (daily deaths) - Spain")
         createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Spain','Variation rate','Variation rate (daily deaths) - Spain', 'Variation rate (%)','linear')
 
-    elif page == 'Grafica de variacion de muertes en Spain (log scale)':
-        st.write("### Grafica de variacion de muertes en Spain (log scale)")
+    elif page == 'Variation rate (accumulated daily deaths) - Spain':
+        st.write("### Variation rate (accumulated daily deaths) - Spain")
         createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Spain','Variation rate','Variation rate (accumulated daily deaths) - Spain', 'Variation rate (%)','linear')
 
-    elif page == 'Grafica de recuperaciones en Spain':
-        st.write("### Grafica de recuperaciones en Spain")
-        createSinglePlot(df_global, 'Day', 'Recovered_Spain','Recovered','Daily recovered - Spain', 'Recovered','linear')
+    elif page == 'Daily recovered - Spain':
+        st.write("### Daily recovered - Spain")
+        createSinglePlot(df_global, 'Day', 'Recovered_Spain','Recovered','Daily recovered - Spain', 'Recovered','log')
 
-    elif page == 'Grafica de recuperaciones en Spain (log scale)':
-        st.write("### Grafica de recuperaciones en Spain (log scale)")
-        createSinglePlot(df_global, 'Day', 'Recovered_Spain','Recovered','Daily recovered - Spain (log scale)', 'Recovered','log')
+    elif page == 'Accumulated daily recovered - Spain':
+        st.write("### Accumulated daily recovered - Spain")
+        createSinglePlot(df_global, 'Day', 'RecoveredAccum_Spain','Recovered','Accumulated daily recovered - Spain', 'Recovered','log')
 
-    elif page == 'Grafica de recuperaciones acumuladas en Spain':
-        st.write("### Grafica de recuperaciones acumuladas en Spain")
-        createSinglePlot(df_global, 'Day', 'RecoveredAccum_Spain','Recovered','Accumulated daily recovered - Spain', 'Recovered','linear')
-
-    elif page == 'Grafica de recuperaciones acumuladas en Spain (log scale)':
-        st.write("### Grafica de recuperaciones acumuladas en Spain (log scale)")
-        createSinglePlot(df_global, 'Day', 'RecoveredAccum_Spain','Recovered','Accumulated daily recovered - Spain (log scale)', 'Recovered','log')
-
-    elif page == 'Grafica de variaciones de recuperacion en Spain':
-        st.write("### Grafica de variaciones de recuperacion en Spain")
+    elif page == 'Variation rate (daily recovered) - Spain':
+        st.write("### Variation rate (daily recovered) - Spain")
         createSinglePlot(df_global, 'Day', 'Recovered_VariationRate_Spain','Variation rate','Variation rate (daily recovered) - Spain', 'Variation rate (%)','linear')
 
-    elif page == 'Grafica de variaciones de recuperacion es Spain (log scale)':
-        st.write("### Grafica de variaciones de recuperacion es Spain (log scale)")
+    elif page == 'Variation rate (accumulated daily recovered) - Spain':
+        st.write("### Variation rate (accumulated daily recovered) - Spain")
         createSinglePlot(df_global, 'Day', 'RecoveredAccum_VariationRate_Spain','Variation rate','Variation rate (accumulated daily recovered) - Spain', 'Variation rate (%)','linear')
 
-    elif page == 'Grafica de casos en Madrid':
-        st.write("### Grafica de casos en Madrid")
-        createSinglePlot(df_global, 'Day', 'Cases_Madrid','Cases','Daily cases - Madrid', 'Cases','linear')
+    elif page == 'Daily cases - Madrid':
+        st.write("### Daily cases - Madrid")
+        createSinglePlot(df_global, 'Day', 'Cases_Madrid','Cases','Daily cases - Madrid', 'Cases','log')
 
-    elif page == 'Grafica de casos en Madrid (log scale)':
-        st.write("### Grafica de casos en Madrid (log scale)")
-        createSinglePlot(df_global, 'Day', 'Cases_Madrid','Cases','Daily cases - Madrid (log scale)', 'Cases','log')
+    elif page == 'Accumulated daily cases - Madrid':
+        st.write("### Accumulated daily cases - Madrid")
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Madrid','Cases','Accumulated daily cases - Madrid', 'Cases','log')
 
-    elif page == 'Grafica de casos acumulados en Madrid':
-        st.write("### Grafica de casos acumulados en Madrid")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Madrid','Cases','Accumulated daily cases - Madrid', 'Cases','linear')
-
-    elif page == 'Grafica de casos acumulados en Madrid':
-        st.write("### Grafica de casos acumulados en Madrid")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Madrid','Cases','Accumulated daily cases - Madrid (log scale)', 'Cases','log')
-
-    elif page == 'Grafica de variaciones de casos en Madrid':
-        st.write("### Grafica de variaciones de casos en Madrid")
+    elif page == 'Variation rate (daily cases) - Madrid':
+        st.write("### Variation rate (daily cases) - Madrid")
         createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Madrid','Variation rate','Variation rate (daily cases) - Madrid', 'Variation rate (%)','linear')
 
-    elif page == 'Grafica de variaciones de casos en Madrid (log scale)':
-        st.write("### Grafica de variaciones de casos en Madrid (log scale)")
+    elif page == 'Variation rate (accumulated daily cases) - Madrid':
+        st.write("### Variation rate (accumulated daily cases) - Madrid")
         createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Madrid','Variation rate','Variation rate (accumulated daily cases) - Madrid', 'Variation rate (%)','linear')
 
-    elif page == 'Grafica de muertos en Madrid':
-        st.write("### Grafica de muertos en Madrid")
-        createSinglePlot(df_global, 'Day', 'Deaths_Madrid','Deaths','Daily deaths - Madrid', 'Deaths','linear')
+    elif page == 'Daily deaths - Madrid':
+        st.write("### Daily deaths - Madrid")
+        createSinglePlot(df_global, 'Day', 'Deaths_Madrid','Deaths','Daily deaths - Madrid', 'Deaths','log')
 
-    elif page == 'Grafica de muertos en Madrid (log scale)':
-        st.write("### Grafica de muertos en Madrid (log scale)")
-        createSinglePlot(df_global, 'Day', 'Deaths_Madrid','Deaths','Daily deaths - Madrid (log scale)', 'Deaths','log')
+    elif page == 'Accumulated daily deaths - Madrid':
+        st.write("### Accumulated daily deaths - Madrid")
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Madrid','Deaths','Accumulated daily deaths - Madrid', 'Deaths','log')
 
-    elif page == 'Grafica de muertos acumulados en Madrid':
-        st.write("### Grafica de muertos acumulados en Madrid")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Madrid','Deaths','Accumulated daily deaths - Madrid', 'Deaths','linear')
-
-    elif page == 'Grafica de muertos acumulados en Madrid (log scale)':
-        st.write("### Grafica de muertos acumulados en Madrid (log scale)")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Madrid','Deaths','Accumulated daily deaths - Madrid (log scale)', 'Deaths','log')
-
-    elif page == 'Grafica de variaciones de muertos en Madrid':
-        st.write("### Grafica de variaciones de muertos en Madrid")
+    elif page == 'Variation rate (daily deaths) - Madrid':
+        st.write("### Variation rate (daily deaths) - Madrid")
         createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Madrid','Variation rate','Variation rate (daily deaths) - Madrid', 'Variation rate (%)','linear')
 
-    elif page == 'Grafica de variaciones de muertos en Madrid (log scale)':
-        st.write("### Grafica de variaciones de muertos en Madrid (log scale)")
+    elif page == 'Variation rate (accumulated daily deaths) - Madrid':
+        st.write("### Variation rate (accumulated daily deaths) - Madrid")
         createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Madrid','Variation rate','Variation rate (accumulated daily deaths) - Madrid', 'Variation rate (%)','linear')
 
 if __name__ == '__main__':
