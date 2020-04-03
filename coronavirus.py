@@ -161,8 +161,15 @@ def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
         })
     chart_data = chart_data.set_index(df_global['Period'])
     st.write("### " + title, chart_data.sort_index())
+
     if yScale != 'log':
-        st.line_chart(chart_data)
+        chart = st.line_chart(chart_data.iloc[:1])
+        for i in range(2,df_global['Day'].count()):
+            chart.add_rows(chart_data.iloc[:i])
+            print(chart_data.iloc[:i])
+            time.sleep(0.05)
+        chart.add_rows(chart_data.tail(1))
+        
 
     # Dictionaries and constants
     day_init_quarantine = 44
@@ -204,10 +211,11 @@ def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
     lastRows = datas.iloc[:1]
     if yScale != 'log':
         chart = st.line_chart(lastRows)
-        for i in range(2,datas[yData].count()):
+        for i in range(2,df_global['Day'].count()):
             lastRows = datas.iloc[:i]
             chart.add_rows(lastRows)
             time.sleep(0.05)
+        chart.add_rows(datas[yData].tail(1))
 
     plt.figure(figsize=(20,10))
     plt.plot(df_global[xData], df_global[yData], color = 'navy', marker='o', linestyle='dashed',
