@@ -253,7 +253,7 @@ def main():
         'Variation rate (accumulated daily cases) - Spain',
         'Daily deaths - Spain',
         'Accumulated daily deaths - Spain',
-        'Variation rate (daily deaths) - Spain
+        'Variation rate (daily deaths) - Spain',
         'Variation rate (accumulated daily deaths) - Spain',
         'Daily recovered - Spain',
         'Accumulated daily recovered - Spain',
@@ -308,7 +308,7 @@ def main():
         st.write("### Accumulated daily deaths - Spain")
         createSinglePlot(df_global, 'Day', 'DeathsAccum_Spain','Deaths','Accumulated daily deaths - Spain', 'Deaths','log')
 
-    elif page == 'Variation rate (daily deaths) - Spain:
+    elif page == 'Variation rate (daily deaths) - Spain':
         st.write("### Variation rate (daily deaths) - Spain")
         createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Spain','Variation rate','Variation rate (daily deaths) - Spain', 'Variation rate (%)','linear')
 
