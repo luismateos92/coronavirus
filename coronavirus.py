@@ -10,8 +10,6 @@ import matplotlib
 import streamlit as st
 import altair as alt
 import time
-import geopandas as gpd
-from geopandas import GeoDataFrame
 
 if sys.version_info[0] < 3:
     reload(sys) # noqa: F821 pylint:disable=undefined-variable
