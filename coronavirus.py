@@ -10,6 +10,8 @@ import matplotlib
 import streamlit as st
 import altair as alt
 import time
+import geopandas as gpd
+from geopandas import GeoDataFrame
 
 if sys.version_info[0] < 3:
     reload(sys) # noqa: F821 pylint:disable=undefined-variable
@@ -40,7 +42,7 @@ def getData():
     response_recovered_accum_spain = requests.post('https://www.epdata.es/oembed/get/', headers = headers, data = common_init + recovered_accum_spain + common_end).json()
 
 
-   # Andalucia
+    # Andalucia
     cases_andalucia = '"Guid":"ebb8e9f0-2c01-4090-bc03-569a348f45dc-290"'
     deaths_andalucia = '"Guid":"81d9b17a-6b10-40de-a592-981cc548c6f2-290"'
 
@@ -182,6 +184,7 @@ def getData():
     
     # Create raw dataframe
 
+    # Crear dataframe con las coordenadas de cada región
     # Spain
     raw_cases_spain = pd.read_json(response_cases_spain)
     raw_deaths_accum_spain = pd.read_json(response_deaths_accum_spain)
@@ -772,7 +775,7 @@ def fromAccumToSingleValues(x):
         y[i] = x[i] - x[i-1]
     return y
 
-def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
+def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale, speed):
     if yRecovered != 'null':
         chart_data = pd.DataFrame({
             'Cases': df_global[yCases],
@@ -789,7 +792,7 @@ def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
     chart = st.line_chart(chart_data.iloc[:1])
     for i in range(2,df_global['Day'].count()):
         chart.add_rows(chart_data.iloc[:i])
-        time.sleep(0.05)
+        time.speed(speed)
     chart.add_rows(chart_data.tail(1))
         
 
@@ -817,7 +820,7 @@ def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale):
         plt.legend(fontsize=12)
         st.pyplot()
 
-def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
+def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale, speed):
     # Dictionaries and constants
     day_init_quarantine = 44
     day14_init_quarantine = 59
@@ -836,7 +839,7 @@ def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
     for i in range(2,df_global['Day'].count()):
         lastRows = datas.iloc[:i]
         chart.add_rows(lastRows)
-        time.sleep(0.05)
+        time.speed(speed)
     chart.add_rows(datas[yData].tail(1))
 
     if yScale == 'log':
@@ -861,197 +864,287 @@ def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale):
 def main():
     TodaysDate = time.strftime("%d-%m-%Y")
 
+    speed = st.sidebar.slider("Speed of graph display", 0.00, 2.0, 0.05)
+
+    st.sidebar.markdown('### Spain and CCAA')
+
+    option = st.sidebar.selectbox(
+        'What region do you want to see??',
+        (
+            'Spain',
+            'Andalucia',
+            'Aragon',
+            'Asturias',
+            'Canarias',
+            'Cantabria',
+            'Castilla y Leon',
+            'Castilla La Mancha',
+            'Catalunya',
+            'Ceuta',
+            'Comunidad Valenciana',
+            'Extremadura',
+            'Galicia',
+            'Islas Baleares',
+            'La Rioja',
+            'Madrid',
+            'Melilla',
+            'Murcia',
+            'Navarra',
+            'Pais Vasco'
+        )
+    )
+
     st.title('COVID-19 in Spain and CCAA on ' + TodaysDate)
 
     df_global = getData()
 
-    page = st.sidebar.selectbox("Choose a page", [
-        'Table with the results obtained',
-        'Spain',
-        'Andalucia',
-        'Aragon',
-        'Asturias',
-        'Canarias',
-        'Cantabria',
-        'Castilla y Leon',
-        'Castilla La Mancha',
-        'Catalunya',
-        'Ceuta',
-        'Comunidad Valenciana',
-        'Extremadura',
-        'Galicia',
-        'Islas Baleares',
-        'La Rioja',
-        'Madrid',
-        'Melilla',
-        'Murcia',
-        'Navarra',
-        'Pais Vasco',
-        'Daily cases - Spain',
-        'Accumulated daily cases - Spain',
-        'Variation rate (daily cases) - Spain',
-        'Variation rate (accumulated daily cases) - Spain',
-        'Daily deaths - Spain',
-        'Accumulated daily deaths - Spain',
-        'Variation rate (daily deaths) - Spain',
-        'Variation rate (accumulated daily deaths) - Spain',
-        'Daily recovered - Spain',
-        'Accumulated daily recovered - Spain',
-        'Variation rate (daily recovered) - Spain',
-        'Variation rate (accumulated daily recovered) - Spain',
-        'Daily cases - Andalucia',
-        'Accumulated daily cases - Andalucia',
-        'Variation rate (daily cases) - Andalucia',
-        'Variation rate (accumulated daily cases) - Andalucia',
-        'Daily deaths - Andalucia',
-        'Accumulated daily deaths - Andalucia',
-        'Variation rate (daily deaths) - Andalucia',
-        'Variation rate (accumulated daily deaths) - Andalucia'    
-        'Daily cases - Aragon',
-        'Accumulated daily cases - Aragon',
-        'Variation rate (daily cases) - Aragon',
-        'Variation rate (accumulated daily cases) - Aragon',
-        'Daily deaths - Aragon',
-        'Accumulated daily deaths - Aragon',
-        'Variation rate (daily deaths) - Aragon',
-        'Variation rate (accumulated daily deaths) - Aragon'    
-        'Daily cases - Asturias',
-        'Accumulated daily cases - Asturias',
-        'Variation rate (daily cases) - Asturias',
-        'Variation rate (accumulated daily cases) - Asturias',
-        'Daily deaths - Asturias',
-        'Accumulated daily deaths - Asturias',
-        'Variation rate (daily deaths) - Asturias',
-        'Variation rate (accumulated daily deaths) - Asturias'    
-        'Daily cases - Canarias',
-        'Accumulated daily cases - Canarias',
-        'Variation rate (daily cases) - Canarias',
-        'Variation rate (accumulated daily cases) - Canarias',
-        'Daily deaths - Canarias',
-        'Accumulated daily deaths - Canarias',
-        'Variation rate (daily deaths) - Canarias',
-        'Variation rate (accumulated daily deaths) - Canarias'    
-        'Daily cases - Cantabria',
-        'Accumulated daily cases - Cantabria',
-        'Variation rate (daily cases) - Cantabria',
-        'Variation rate (accumulated daily cases) - Cantabria',
-        'Daily deaths - Cantabria',
-        'Accumulated daily deaths - Cantabria',
-        'Variation rate (daily deaths) - Cantabria',
-        'Variation rate (accumulated daily deaths) - Cantabria'    
-        'Daily cases - Castilla y Leon',
-        'Accumulated daily cases - Castilla y Leon',
-        'Variation rate (daily cases) - Castilla y Leon',
-        'Variation rate (accumulated daily cases) - Castilla y Leon',
-        'Daily deaths - Castilla y Leon',
-        'Accumulated daily deaths - Castilla y Leon',
-        'Variation rate (daily deaths) - Castilla y Leon',
-        'Variation rate (accumulated daily deaths) - Castilla y Leon'    
-        'Daily cases - Castilla La Mancha',
-        'Accumulated daily cases - Castilla La Mancha',
-        'Variation rate (daily cases) - Castilla La Mancha',
-        'Variation rate (accumulated daily cases) - Castilla La Mancha',
-        'Daily deaths - Castilla La Mancha',
-        'Accumulated daily deaths - Castilla La Mancha',
-        'Variation rate (daily deaths) - Castilla La Mancha',
-        'Variation rate (accumulated daily deaths) - Castilla La Mancha'    
-        'Daily cases - Catalunya',
-        'Accumulated daily cases - Catalunya',
-        'Variation rate (daily cases) - Catalunya',
-        'Variation rate (accumulated daily cases) - Catalunya',
-        'Daily deaths - Catalunya',
-        'Accumulated daily deaths - Catalunya',
-        'Variation rate (daily deaths) - Catalunya',
-        'Variation rate (accumulated daily deaths) - Catalunya'    
-        'Daily cases - Ceuta',
-        'Accumulated daily cases - Ceuta',
-        'Variation rate (daily cases) - Ceuta',
-        'Variation rate (accumulated daily cases) - Ceuta',
-        'Daily deaths - Ceuta',
-        'Accumulated daily deaths - Ceuta',
-        'Variation rate (daily deaths) - Ceuta',
-        'Variation rate (accumulated daily deaths) - Ceuta'    
-        'Daily cases - Comunidad Valenciana',
-        'Accumulated daily cases - Comunidad Valenciana',
-        'Variation rate (daily cases) - Comunidad Valenciana',
-        'Variation rate (accumulated daily cases) - Comunidad Valenciana',
-        'Daily deaths - Comunidad Valenciana',
-        'Accumulated daily deaths - Comunidad Valenciana',
-        'Variation rate (daily deaths) - Comunidad Valenciana',
-        'Variation rate (accumulated daily deaths) - Comunidad Valenciana'    
-        'Daily cases - Extremadura',
-        'Accumulated daily cases - Extremadura',
-        'Variation rate (daily cases) - Extremadura',
-        'Variation rate (accumulated daily cases) - Extremadura',
-        'Daily deaths - Extremadura',
-        'Accumulated daily deaths - Extremadura',
-        'Variation rate (daily deaths) - Extremadura',
-        'Variation rate (accumulated daily deaths) - Extremadura'    
-        'Daily cases - Galicia',
-        'Accumulated daily cases - Galicia',
-        'Variation rate (daily cases) - Galicia',
-        'Variation rate (accumulated daily cases) - Galicia',
-        'Daily deaths - Galicia',
-        'Accumulated daily deaths - Galicia',
-        'Variation rate (daily deaths) - Galicia',
-        'Variation rate (accumulated daily deaths) - Galicia'    
-        'Daily cases - Islas Baleares',
-        'Accumulated daily cases - Islas Baleares',
-        'Variation rate (daily cases) - Islas Baleares',
-        'Variation rate (accumulated daily cases) - Islas Baleares',
-        'Daily deaths - Islas Baleares',
-        'Accumulated daily deaths - Islas Baleares',
-        'Variation rate (daily deaths) - Islas Baleares',
-        'Variation rate (accumulated daily deaths) - Islas Baleares'    
-        'Daily cases - La Rioja',
-        'Accumulated daily cases - La Rioja',
-        'Variation rate (daily cases) - La Rioja',
-        'Variation rate (accumulated daily cases) - La Rioja',
-        'Daily deaths - La Rioja',
-        'Accumulated daily deaths - La Rioja',
-        'Variation rate (daily deaths) - La Rioja',
-        'Variation rate (accumulated daily deaths) - La Rioja'    
-        'Daily cases - Madrid',
-        'Accumulated daily cases - Madrid',
-        'Variation rate (daily cases) - Madrid',
-        'Variation rate (accumulated daily cases) - Madrid',
-        'Daily deaths - Madrid',
-        'Accumulated daily deaths - Madrid',
-        'Variation rate (daily deaths) - Madrid',
-        'Variation rate (accumulated daily deaths) - Madrid'    
-        'Daily cases - Melilla',
-        'Accumulated daily cases - Melilla',
-        'Variation rate (daily cases) - Melilla',
-        'Variation rate (accumulated daily cases) - Melilla',
-        'Daily deaths - Melilla',
-        'Accumulated daily deaths - Melilla',
-        'Variation rate (daily deaths) - Melilla',
-        'Variation rate (accumulated daily deaths) - Melilla'    
-        'Daily cases - Murcia',
-        'Accumulated daily cases - Murcia',
-        'Variation rate (daily cases) - Murcia',
-        'Variation rate (accumulated daily cases) - Murcia',
-        'Daily deaths - Murcia',
-        'Accumulated daily deaths - Murcia',
-        'Variation rate (daily deaths) - Murcia',
-        'Variation rate (accumulated daily deaths) - Murcia'    
-        'Daily cases - Navarra',
-        'Accumulated daily cases - Navarra',
-        'Variation rate (daily cases) - Navarra',
-        'Variation rate (accumulated daily cases) - Navarra',
-        'Daily deaths - Navarra',
-        'Accumulated daily deaths - Navarra',
-        'Variation rate (daily deaths) - Navarra',
-        'Variation rate (accumulated daily deaths) - Navarra'    
-        'Daily cases - Pais Vasco',
-        'Accumulated daily cases - Pais Vasco',
-        'Variation rate (daily cases) - Pais Vasco',
-        'Variation rate (accumulated daily cases) - Pais Vasco',
-        'Daily deaths - Pais Vasco',
-        'Accumulated daily deaths - Pais Vasco',
-        'Variation rate (daily deaths) - Pais Vasco',
-        'Variation rate (accumulated daily deaths) - Pais Vasco'
-    ])
+    st.sidebar.markdown('### Graphics')
+
+    if (option == 'Spain'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Table with the results obtained',
+            'Spain: Cases, Deaths and Recovered',
+            'Daily cases - Spain',
+            'Accumulated daily cases - Spain',
+            'Variation rate (daily cases) - Spain',
+            'Variation rate (accumulated daily cases) - Spain',
+            'Daily deaths - Spain',
+            'Accumulated daily deaths - Spain',
+            'Variation rate (daily deaths) - Spain',
+            'Variation rate (accumulated daily deaths) - Spain',
+            'Daily recovered - Spain',
+            'Accumulated daily recovered - Spain',
+            'Variation rate (daily recovered) - Spain',
+            'Variation rate (accumulated daily recovered) - Spain'
+        ])
+    elif (option == 'Andalucia'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Andalucia: Cases and Deaths',
+            'Daily cases - Andalucia',
+            'Accumulated daily cases - Andalucia',
+            'Variation rate (daily cases) - Andalucia',
+            'Variation rate (accumulated daily cases) - Andalucia',
+            'Daily deaths - Andalucia',
+            'Accumulated daily deaths - Andalucia',
+            'Variation rate (daily deaths) - Andalucia',
+            'Variation rate (accumulated daily deaths) - Andalucia'
+        ])
+    elif (option == 'Aragon'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Aragon: Cases and Deaths',
+            'Daily cases - Aragon',
+            'Accumulated daily cases - Aragon',
+            'Variation rate (daily cases) - Aragon',
+            'Variation rate (accumulated daily cases) - Aragon',
+            'Daily deaths - Aragon',
+            'Accumulated daily deaths - Aragon',
+            'Variation rate (daily deaths) - Aragon',
+            'Variation rate (accumulated daily deaths) - Aragon'
+        ])
+    elif (option == 'Asturias'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Asturias: Cases and Deaths',
+            'Daily cases - Asturias',
+            'Accumulated daily cases - Asturias',
+            'Variation rate (daily cases) - Asturias',
+            'Variation rate (accumulated daily cases) - Asturias',
+            'Daily deaths - Asturias',
+            'Accumulated daily deaths - Asturias',
+            'Variation rate (daily deaths) - Asturias',
+            'Variation rate (accumulated daily deaths) - Asturias'
+        ])
+    elif (option == 'Canarias'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Canarias: Cases and Deaths',
+            'Daily cases - Canarias',
+            'Accumulated daily cases - Canarias',
+            'Variation rate (daily cases) - Canarias',
+            'Variation rate (accumulated daily cases) - Canarias',
+            'Daily deaths - Canarias',
+            'Accumulated daily deaths - Canarias',
+            'Variation rate (daily deaths) - Canarias',
+            'Variation rate (accumulated daily deaths) - Canarias'
+        ])
+    elif (option == 'Cantabria'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Cantabria: Cases and Deaths',
+            'Daily cases - Cantabria',
+            'Accumulated daily cases - Cantabria',
+            'Variation rate (daily cases) - Cantabria',
+            'Variation rate (accumulated daily cases) - Cantabria',
+            'Daily deaths - Cantabria',
+            'Accumulated daily deaths - Cantabria',
+            'Variation rate (daily deaths) - Cantabria',
+            'Variation rate (accumulated daily deaths) - Cantabria'
+        ])
+    elif (option == 'Castilla y Leon'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Castilla y Leon: Cases and Deaths',
+            'Daily cases - Castilla y Leon',
+            'Accumulated daily cases - Castilla y Leon',
+            'Variation rate (daily cases) - Castilla y Leon',
+            'Variation rate (accumulated daily cases) - Castilla y Leon',
+            'Daily deaths - Castilla y Leon',
+            'Accumulated daily deaths - Castilla y Leon',
+            'Variation rate (daily deaths) - Castilla y Leon',
+            'Variation rate (accumulated daily deaths) - Castilla y Leon'
+        ])
+    elif (option == 'Castilla La Mancha'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Castilla La Mancha: Cases and Deaths',
+            'Daily cases - Castilla La Mancha',
+            'Accumulated daily cases - Castilla La Mancha',
+            'Variation rate (daily cases) - Castilla La Mancha',
+            'Variation rate (accumulated daily cases) - Castilla La Mancha',
+            'Daily deaths - Castilla La Mancha',
+            'Accumulated daily deaths - Castilla La Mancha',
+            'Variation rate (daily deaths) - Castilla La Mancha',
+            'Variation rate (accumulated daily deaths) - Castilla La Mancha'
+        ])
+    elif (option == 'Catalunya'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Catalunya: Cases and Deaths',
+            'Daily cases - Catalunya',
+            'Accumulated daily cases - Catalunya',
+            'Variation rate (daily cases) - Catalunya',
+            'Variation rate (accumulated daily cases) - Catalunya',
+            'Daily deaths - Catalunya',
+            'Accumulated daily deaths - Catalunya',
+            'Variation rate (daily deaths) - Catalunya',
+            'Variation rate (accumulated daily deaths) - Catalunya'
+        ])
+    elif (option == 'Ceuta'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Ceuta: Cases and Deaths',
+            'Daily cases - Ceuta',
+            'Accumulated daily cases - Ceuta',
+            'Variation rate (daily cases) - Ceuta',
+            'Variation rate (accumulated daily cases) - Ceuta',
+            'Daily deaths - Ceuta',
+            'Accumulated daily deaths - Ceuta',
+            'Variation rate (daily deaths) - Ceuta',
+            'Variation rate (accumulated daily deaths) - Ceuta'
+        ])
+    elif (option == 'Comunidad Valenciana'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Comunidad Valenciana: Cases and Deaths',
+            'Daily cases - Comunidad Valenciana',
+            'Accumulated daily cases - Comunidad Valenciana',
+            'Variation rate (daily cases) - Comunidad Valenciana',
+            'Variation rate (accumulated daily cases) - Comunidad Valenciana',
+            'Daily deaths - Comunidad Valenciana',
+            'Accumulated daily deaths - Comunidad Valenciana',
+            'Variation rate (daily deaths) - Comunidad Valenciana',
+            'Variation rate (accumulated daily deaths) - Comunidad Valenciana'
+        ])
+    elif (option == 'Extremadura'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Extremadura: Cases and Deaths',
+            'Daily cases - Extremadura',
+            'Accumulated daily cases - Extremadura',
+            'Variation rate (daily cases) - Extremadura',
+            'Variation rate (accumulated daily cases) - Extremadura',
+            'Daily deaths - Extremadura',
+            'Accumulated daily deaths - Extremadura',
+            'Variation rate (daily deaths) - Extremadura',
+            'Variation rate (accumulated daily deaths) - Extremadura'
+        ])
+    elif (option == 'Galicia'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Galicia: Cases and Deaths',
+            'Daily cases - Galicia',
+            'Accumulated daily cases - Galicia',
+            'Variation rate (daily cases) - Galicia',
+            'Variation rate (accumulated daily cases) - Galicia',
+            'Daily deaths - Galicia',
+            'Accumulated daily deaths - Galicia',
+            'Variation rate (daily deaths) - Galicia',
+            'Variation rate (accumulated daily deaths) - Galicia'
+        ])
+    elif (option == 'Islas Baleares'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Islas Baleares: Cases and Deaths',
+            'Daily cases - Islas Baleares',
+            'Accumulated daily cases - Islas Baleares',
+            'Variation rate (daily cases) - Islas Baleares',
+            'Variation rate (accumulated daily cases) - Islas Baleares',
+            'Daily deaths - Islas Baleares',
+            'Accumulated daily deaths - Islas Baleares',
+            'Variation rate (daily deaths) - Islas Baleares',
+            'Variation rate (accumulated daily deaths) - Islas Baleares'
+        ])
+    elif (option == 'La Rioja'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'La Rioja: Cases and Deaths',
+            'Daily cases - La Rioja',
+            'Accumulated daily cases - La Rioja',
+            'Variation rate (daily cases) - La Rioja',
+            'Variation rate (accumulated daily cases) - La Rioja',
+            'Daily deaths - La Rioja',
+            'Accumulated daily deaths - La Rioja',
+            'Variation rate (daily deaths) - La Rioja',
+            'Variation rate (accumulated daily deaths) - La Rioja'
+        ])
+    elif (option == 'Madrid'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Madrid: Cases and Deaths',
+            'Daily cases - Madrid',
+            'Accumulated daily cases - Madrid',
+            'Variation rate (daily cases) - Madrid',
+            'Variation rate (accumulated daily cases) - Madrid',
+            'Daily deaths - Madrid',
+            'Accumulated daily deaths - Madrid',
+            'Variation rate (daily deaths) - Madrid',
+            'Variation rate (accumulated daily deaths) - Madrid'
+        ])
+    elif (option == 'Melilla'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Melilla: Cases and Deaths',
+            'Daily cases - Melilla',
+            'Accumulated daily cases - Melilla',
+            'Variation rate (daily cases) - Melilla',
+            'Variation rate (accumulated daily cases) - Melilla',
+            'Daily deaths - Melilla',
+            'Accumulated daily deaths - Melilla',
+            'Variation rate (daily deaths) - Melilla',
+            'Variation rate (accumulated daily deaths) - Melilla'
+        ])
+    elif (option == 'Murcia'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Murcia: Cases and Deaths',
+            'Daily cases - Murcia',
+            'Accumulated daily cases - Murcia',
+            'Variation rate (daily cases) - Murcia',
+            'Variation rate (accumulated daily cases) - Murcia',
+            'Daily deaths - Murcia',
+            'Accumulated daily deaths - Murcia',
+            'Variation rate (daily deaths) - Murcia',
+            'Variation rate (accumulated daily deaths) - Murcia'
+        ])
+    elif (option == 'Navarra'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Navarra: Cases and Deaths',
+            'Daily cases - Navarra',
+            'Accumulated daily cases - Navarra',
+            'Variation rate (daily cases) - Navarra',
+            'Variation rate (accumulated daily cases) - Navarra',
+            'Daily deaths - Navarra',
+            'Accumulated daily deaths - Navarra',
+            'Variation rate (daily deaths) - Navarra',
+            'Variation rate (accumulated daily deaths) - Navarra'
+        ])
+    elif (option == 'Pais Vasco'):
+        page = st.sidebar.selectbox("Choose a page", [
+            'Pais Vasco: Cases and Deaths',
+            'Daily cases - Pais Vasco',
+            'Accumulated daily cases - Pais Vasco',
+            'Variation rate (daily cases) - Pais Vasco',
+            'Variation rate (accumulated daily cases) - Pais Vasco',
+            'Daily deaths - Pais Vasco',
+            'Accumulated daily deaths - Pais Vasco',
+            'Variation rate (daily deaths) - Pais Vasco',
+            'Variation rate (accumulated daily deaths) - Pais Vasco'
+        ])
 
     if page == 'Table with the results obtained':
         df_table = df_global
@@ -1062,743 +1155,741 @@ def main():
         data_table = df_table.loc[df_table.index]
         st.write("### Table with the results obtained to date " + TodaysDate, data_table.sort_index())
 
-
-    elif page == 'Spain':
+    elif page == 'Spain: Cases, Deaths and Recovered':
         st.write("### Cases, deaths and recoveries accumulated in Spain")
-        createOverviewPlot(df_global, 'CasesAccum_Spain','DeathsAccum_Spain','RecoveredAccum_Spain','Spain','log')
+        createOverviewPlot(df_global, 'CasesAccum_Spain','DeathsAccum_Spain','RecoveredAccum_Spain','Spain','log',speed)
 
-    elif page == 'Andalucia':
+    elif page == 'Andalucia: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Andalucia")
-        createOverviewPlot(df_global, 'CasesAccum_Andalucia','DeathsAccum_Andalucia','null','Andalucia','log')
+        createOverviewPlot(df_global, 'CasesAccum_Andalucia','DeathsAccum_Andalucia','null','Andalucia','log',speed)
     
-    elif page == 'Aragon':
+    elif page == 'Aragon: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Aragon")
-        createOverviewPlot(df_global, 'CasesAccum_Aragon','DeathsAccum_Aragon','null','Aragon','log')
+        createOverviewPlot(df_global, 'CasesAccum_Aragon','DeathsAccum_Aragon','null','Aragon','log',speed)
     
-    elif page == 'Asturias':
+    elif page == 'Asturias: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Asturias")
-        createOverviewPlot(df_global, 'CasesAccum_Asturias','DeathsAccum_Asturias','null','Asturias','log')
+        createOverviewPlot(df_global, 'CasesAccum_Asturias','DeathsAccum_Asturias','null','Asturias','log',speed)
     
-    elif page == 'Canarias':
+    elif page == 'Canarias: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Canarias")
-        createOverviewPlot(df_global, 'CasesAccum_Canarias','DeathsAccum_Canarias','null','Canarias','log')
+        createOverviewPlot(df_global, 'CasesAccum_Canarias','DeathsAccum_Canarias','null','Canarias','log',speed)
     
-    elif page == 'Cantabria':
+    elif page == 'Cantabria: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Cantabria")
-        createOverviewPlot(df_global, 'CasesAccum_Cantabria','DeathsAccum_Cantabria','null','Cantabria','log')
+        createOverviewPlot(df_global, 'CasesAccum_Cantabria','DeathsAccum_Cantabria','null','Cantabria','log',speed)
     
-    elif page == 'Castilla y Leon':
+    elif page == 'Castilla y Leon: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Castilla y Leon")
-        createOverviewPlot(df_global, 'CasesAccum_Castilla_y_Leon','DeathsAccum_Castilla_y_Leon','null','Castilla y Leon','log')
+        createOverviewPlot(df_global, 'CasesAccum_Castilla_y_Leon','DeathsAccum_Castilla_y_Leon','null','Castilla y Leon','log',speed)
     
-    elif page == 'Castilla La Mancha':
+    elif page == 'Castilla La Mancha: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Castilla La Mancha")
-        createOverviewPlot(df_global, 'CasesAccum_Castilla_La_Mancha','DeathsAccum_Castilla_La_Mancha','null','Castilla La Mancha','log')
+        createOverviewPlot(df_global, 'CasesAccum_Castilla_La_Mancha','DeathsAccum_Castilla_La_Mancha','null','Castilla La Mancha','log',speed)
     
-    elif page == 'Catalunya':
+    elif page == 'Catalunya: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Catalunya")
-        createOverviewPlot(df_global, 'CasesAccum_Catalunya','DeathsAccum_Catalunya','null','Catalunya','log')
+        createOverviewPlot(df_global, 'CasesAccum_Catalunya','DeathsAccum_Catalunya','null','Catalunya','log',speed)
     
-    elif page == 'Ceuta':
+    elif page == 'Ceuta: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Ceuta")
-        createOverviewPlot(df_global, 'CasesAccum_Ceuta','DeathsAccum_Ceuta','null','Ceuta','log')
+        createOverviewPlot(df_global, 'CasesAccum_Ceuta','DeathsAccum_Ceuta','null','Ceuta','log',speed)
     
-    elif page == 'Comunidad Valenciana':
+    elif page == 'Comunidad Valenciana: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Comunidad Valenciana")
-        createOverviewPlot(df_global, 'CasesAccum_Comunidad_Valenciana','DeathsAccum_Comunidad_Valenciana','null','Comunidad Valenciana','log')
+        createOverviewPlot(df_global, 'CasesAccum_Comunidad_Valenciana','DeathsAccum_Comunidad_Valenciana','null','Comunidad Valenciana','log',speed)
     
-    elif page == 'Extremadura':
+    elif page == 'Extremadura: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Extremadura")
-        createOverviewPlot(df_global, 'CasesAccum_Extremadura','DeathsAccum_Extremadura','null','Extremadura','log')
+        createOverviewPlot(df_global, 'CasesAccum_Extremadura','DeathsAccum_Extremadura','null','Extremadura','log',speed)
     
-    elif page == 'Galicia':
+    elif page == 'Galicia: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Galicia")
-        createOverviewPlot(df_global, 'CasesAccum_Galicia','DeathsAccum_Galicia','null','Galicia','log')
+        createOverviewPlot(df_global, 'CasesAccum_Galicia','DeathsAccum_Galicia','null','Galicia','log',speed)
     
-    elif page == 'Islas Baleares':
+    elif page == 'Islas Baleares: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Islas Baleares")
-        createOverviewPlot(df_global, 'CasesAccum_Islas_Baleares','DeathsAccum_Islas_Baleares','null','Islas Baleares','log')
+        createOverviewPlot(df_global, 'CasesAccum_Islas_Baleares','DeathsAccum_Islas_Baleares','null','Islas Baleares','log',speed)
     
-    elif page == 'La Rioja':
+    elif page == 'La Rioja: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in La Rioja")
-        createOverviewPlot(df_global, 'CasesAccum_La_Rioja','DeathsAccum_La_Rioja','null','La Rioja','log')
+        createOverviewPlot(df_global, 'CasesAccum_La_Rioja','DeathsAccum_La_Rioja','null','La Rioja','log',speed)
     
-    elif page == 'Madrid':
+    elif page == 'Madrid: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Madrid")
-        createOverviewPlot(df_global, 'CasesAccum_Madrid','DeathsAccum_Madrid','null','Madrid','log')
+        createOverviewPlot(df_global, 'CasesAccum_Madrid','DeathsAccum_Madrid','null','Madrid','log',speed)
     
-    elif page == 'Melilla':
+    elif page == 'Melilla: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Melilla")
-        createOverviewPlot(df_global, 'CasesAccum_Melilla','DeathsAccum_Melilla','null','Melilla','log')
+        createOverviewPlot(df_global, 'CasesAccum_Melilla','DeathsAccum_Melilla','null','Melilla','log',speed)
     
-    elif page == 'Murcia':
+    elif page == 'Murcia: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Murcia")
-        createOverviewPlot(df_global, 'CasesAccum_Murcia','DeathsAccum_Murcia','null','Murcia','log')
+        createOverviewPlot(df_global, 'CasesAccum_Murcia','DeathsAccum_Murcia','null','Murcia','log',speed)
     
-    elif page == 'Navarra':
+    elif page == 'Navarra: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Navarra")
-        createOverviewPlot(df_global, 'CasesAccum_Navarra','DeathsAccum_Navarra','null','Navarra','log')
+        createOverviewPlot(df_global, 'CasesAccum_Navarra','DeathsAccum_Navarra','null','Navarra','log',speed)
     
-    elif page == 'Pais Vasco':
+    elif page == 'Pais Vasco: Cases and Deaths':
         st.write("### Cases, deaths and recoveries accumulated in Pais Vasco")
-        createOverviewPlot(df_global, 'CasesAccum_Pais_Vasco','DeathsAccum_Pais_Vasco','null','Pais Vasco','log')
+        createOverviewPlot(df_global, 'CasesAccum_Pais_Vasco','DeathsAccum_Pais_Vasco','null','Pais Vasco','log',speed)
 
     elif page == 'Daily cases - Spain':
         st.write("### Daily cases - Spain")
-        createSinglePlot(df_global, 'Day', 'Cases_Spain','Cases','Daily cases - Spain', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Spain','Cases','Daily cases - Spain', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Spain':
         st.write("### Accumulated daily cases - Spain")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Spain','Cases','Accumulated daily cases - Spain', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Spain','Cases','Accumulated daily cases - Spain', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Spain':
         st.write("### Variation rate (daily cases) - Spain")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Spain','Variation rate','Variation rate (daily cases) - Spain', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Spain','Variation rate','Variation rate (daily cases) - Spain', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Spain':
         st.write("### Variation rate (accumulated daily cases) - Spain")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Spain','Variation rate','Variation rate (accumulated daily cases) - Spain', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Spain','Variation rate','Variation rate (accumulated daily cases) - Spain', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Spain':
         st.write("### Daily deaths - Spain")
-        createSinglePlot(df_global, 'Day', 'Deaths_Spain','Deaths','Daily deaths - Spain', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Spain','Deaths','Daily deaths - Spain', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Spain':
         st.write("### Accumulated daily deaths - Spain")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Spain','Deaths','Accumulated daily deaths - Spain', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Spain','Deaths','Accumulated daily deaths - Spain', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Spain':
         st.write("### Variation rate (daily deaths) - Spain")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Spain','Variation rate','Variation rate (daily deaths) - Spain', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Spain','Variation rate','Variation rate (daily deaths) - Spain', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Spain':
         st.write("### Variation rate (accumulated daily deaths) - Spain")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Spain','Variation rate','Variation rate (accumulated daily deaths) - Spain', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Spain','Variation rate','Variation rate (accumulated daily deaths) - Spain', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily recovered - Spain':
         st.write("### Daily recovered - Spain")
-        createSinglePlot(df_global, 'Day', 'Recovered_Spain','Recovered','Daily recovered - Spain', 'Recovered','log')
+        createSinglePlot(df_global, 'Day', 'Recovered_Spain','Recovered','Daily recovered - Spain', 'Recovered','log', speed)
 
     elif page == 'Accumulated daily recovered - Spain':
         st.write("### Accumulated daily recovered - Spain")
-        createSinglePlot(df_global, 'Day', 'RecoveredAccum_Spain','Recovered','Accumulated daily recovered - Spain', 'Recovered','log')
+        createSinglePlot(df_global, 'Day', 'RecoveredAccum_Spain','Recovered','Accumulated daily recovered - Spain', 'Recovered','log', speed)
 
     elif page == 'Variation rate (daily recovered) - Spain':
         st.write("### Variation rate (daily recovered) - Spain")
-        createSinglePlot(df_global, 'Day', 'Recovered_VariationRate_Spain','Variation rate','Variation rate (daily recovered) - Spain', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Recovered_VariationRate_Spain','Variation rate','Variation rate (daily recovered) - Spain', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily recovered) - Spain':
         st.write("### Variation rate (accumulated daily recovered) - Spain")
-        createSinglePlot(df_global, 'Day', 'RecoveredAccum_VariationRate_Spain','Variation rate','Variation rate (accumulated daily recovered) - Spain', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'RecoveredAccum_VariationRate_Spain','Variation rate','Variation rate (accumulated daily recovered) - Spain', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily cases - Andalucia':
         st.write("### Daily cases - Andalucia")
-        createSinglePlot(df_global, 'Day', 'Cases_Andalucia','Cases','Daily cases - Andalucia', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Andalucia','Cases','Daily cases - Andalucia', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Andalucia':
         st.write("### Accumulated daily cases - Andalucia")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Andalucia','Cases','Accumulated daily cases - Andalucia', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Andalucia','Cases','Accumulated daily cases - Andalucia', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Andalucia':
         st.write("### Variation rate (daily cases) - Andalucia")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Andalucia','Variation rate','Variation rate (daily cases) - Andalucia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Andalucia','Variation rate','Variation rate (daily cases) - Andalucia', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Andalucia':
         st.write("### Variation rate (accumulated daily cases) - Andalucia")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Andalucia','Variation rate','Variation rate (accumulated daily cases) - Andalucia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Andalucia','Variation rate','Variation rate (accumulated daily cases) - Andalucia', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Andalucia':
         st.write("### Daily deaths - Andalucia")
-        createSinglePlot(df_global, 'Day', 'Deaths_Andalucia','Deaths','Daily deaths - Andalucia', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Andalucia','Deaths','Daily deaths - Andalucia', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Andalucia':
         st.write("### Accumulated daily deaths - Andalucia")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Andalucia','Deaths','Accumulated daily deaths - Andalucia', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Andalucia','Deaths','Accumulated daily deaths - Andalucia', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Andalucia':
         st.write("### Variation rate (daily deaths) - Andalucia")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Andalucia','Variation rate','Variation rate (daily deaths) - Andalucia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Andalucia','Variation rate','Variation rate (daily deaths) - Andalucia', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Andalucia':
         st.write("### Variation rate (accumulated daily deaths) - Andalucia")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Andalucia','Variation rate','Variation rate (accumulated daily deaths) - Andalucia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Andalucia','Variation rate','Variation rate (accumulated daily deaths) - Andalucia', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Aragon':
         st.write("### Daily cases - Aragon")
-        createSinglePlot(df_global, 'Day', 'Cases_Aragon','Cases','Daily cases - Aragon', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Aragon','Cases','Daily cases - Aragon', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Aragon':
         st.write("### Accumulated daily cases - Aragon")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Aragon','Cases','Accumulated daily cases - Aragon', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Aragon','Cases','Accumulated daily cases - Aragon', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Aragon':
         st.write("### Variation rate (daily cases) - Aragon")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Aragon','Variation rate','Variation rate (daily cases) - Aragon', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Aragon','Variation rate','Variation rate (daily cases) - Aragon', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Aragon':
         st.write("### Variation rate (accumulated daily cases) - Aragon")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Aragon','Variation rate','Variation rate (accumulated daily cases) - Aragon', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Aragon','Variation rate','Variation rate (accumulated daily cases) - Aragon', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Aragon':
         st.write("### Daily deaths - Aragon")
-        createSinglePlot(df_global, 'Day', 'Deaths_Aragon','Deaths','Daily deaths - Aragon', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Aragon','Deaths','Daily deaths - Aragon', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Aragon':
         st.write("### Accumulated daily deaths - Aragon")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Aragon','Deaths','Accumulated daily deaths - Aragon', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Aragon','Deaths','Accumulated daily deaths - Aragon', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Aragon':
         st.write("### Variation rate (daily deaths) - Aragon")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Aragon','Variation rate','Variation rate (daily deaths) - Aragon', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Aragon','Variation rate','Variation rate (daily deaths) - Aragon', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Aragon':
         st.write("### Variation rate (accumulated daily deaths) - Aragon")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Aragon','Variation rate','Variation rate (accumulated daily deaths) - Aragon', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Aragon','Variation rate','Variation rate (accumulated daily deaths) - Aragon', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Asturias':
         st.write("### Daily cases - Asturias")
-        createSinglePlot(df_global, 'Day', 'Cases_Asturias','Cases','Daily cases - Asturias', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Asturias','Cases','Daily cases - Asturias', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Asturias':
         st.write("### Accumulated daily cases - Asturias")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Asturias','Cases','Accumulated daily cases - Asturias', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Asturias','Cases','Accumulated daily cases - Asturias', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Asturias':
         st.write("### Variation rate (daily cases) - Asturias")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Asturias','Variation rate','Variation rate (daily cases) - Asturias', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Asturias','Variation rate','Variation rate (daily cases) - Asturias', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Asturias':
         st.write("### Variation rate (accumulated daily cases) - Asturias")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Asturias','Variation rate','Variation rate (accumulated daily cases) - Asturias', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Asturias','Variation rate','Variation rate (accumulated daily cases) - Asturias', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Asturias':
         st.write("### Daily deaths - Asturias")
-        createSinglePlot(df_global, 'Day', 'Deaths_Asturias','Deaths','Daily deaths - Asturias', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Asturias','Deaths','Daily deaths - Asturias', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Asturias':
         st.write("### Accumulated daily deaths - Asturias")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Asturias','Deaths','Accumulated daily deaths - Asturias', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Asturias','Deaths','Accumulated daily deaths - Asturias', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Asturias':
         st.write("### Variation rate (daily deaths) - Asturias")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Asturias','Variation rate','Variation rate (daily deaths) - Asturias', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Asturias','Variation rate','Variation rate (daily deaths) - Asturias', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Asturias':
         st.write("### Variation rate (accumulated daily deaths) - Asturias")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Asturias','Variation rate','Variation rate (accumulated daily deaths) - Asturias', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Asturias','Variation rate','Variation rate (accumulated daily deaths) - Asturias', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Canarias':
         st.write("### Daily cases - Canarias")
-        createSinglePlot(df_global, 'Day', 'Cases_Canarias','Cases','Daily cases - Canarias', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Canarias','Cases','Daily cases - Canarias', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Canarias':
         st.write("### Accumulated daily cases - Canarias")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Canarias','Cases','Accumulated daily cases - Canarias', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Canarias','Cases','Accumulated daily cases - Canarias', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Canarias':
         st.write("### Variation rate (daily cases) - Canarias")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Canarias','Variation rate','Variation rate (daily cases) - Canarias', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Canarias','Variation rate','Variation rate (daily cases) - Canarias', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Canarias':
         st.write("### Variation rate (accumulated daily cases) - Canarias")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Canarias','Variation rate','Variation rate (accumulated daily cases) - Canarias', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Canarias','Variation rate','Variation rate (accumulated daily cases) - Canarias', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Canarias':
         st.write("### Daily deaths - Canarias")
-        createSinglePlot(df_global, 'Day', 'Deaths_Canarias','Deaths','Daily deaths - Canarias', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Canarias','Deaths','Daily deaths - Canarias', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Canarias':
         st.write("### Accumulated daily deaths - Canarias")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Canarias','Deaths','Accumulated daily deaths - Canarias', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Canarias','Deaths','Accumulated daily deaths - Canarias', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Canarias':
         st.write("### Variation rate (daily deaths) - Canarias")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Canarias','Variation rate','Variation rate (daily deaths) - Canarias', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Canarias','Variation rate','Variation rate (daily deaths) - Canarias', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Canarias':
         st.write("### Variation rate (accumulated daily deaths) - Canarias")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Canarias','Variation rate','Variation rate (accumulated daily deaths) - Canarias', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Canarias','Variation rate','Variation rate (accumulated daily deaths) - Canarias', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Cantabria':
         st.write("### Daily cases - Cantabria")
-        createSinglePlot(df_global, 'Day', 'Cases_Cantabria','Cases','Daily cases - Cantabria', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Cantabria','Cases','Daily cases - Cantabria', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Cantabria':
         st.write("### Accumulated daily cases - Cantabria")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Cantabria','Cases','Accumulated daily cases - Cantabria', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Cantabria','Cases','Accumulated daily cases - Cantabria', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Cantabria':
         st.write("### Variation rate (daily cases) - Cantabria")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Cantabria','Variation rate','Variation rate (daily cases) - Cantabria', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Cantabria','Variation rate','Variation rate (daily cases) - Cantabria', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Cantabria':
         st.write("### Variation rate (accumulated daily cases) - Cantabria")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Cantabria','Variation rate','Variation rate (accumulated daily cases) - Cantabria', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Cantabria','Variation rate','Variation rate (accumulated daily cases) - Cantabria', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Cantabria':
         st.write("### Daily deaths - Cantabria")
-        createSinglePlot(df_global, 'Day', 'Deaths_Cantabria','Deaths','Daily deaths - Cantabria', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Cantabria','Deaths','Daily deaths - Cantabria', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Cantabria':
         st.write("### Accumulated daily deaths - Cantabria")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Cantabria','Deaths','Accumulated daily deaths - Cantabria', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Cantabria','Deaths','Accumulated daily deaths - Cantabria', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Cantabria':
         st.write("### Variation rate (daily deaths) - Cantabria")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Cantabria','Variation rate','Variation rate (daily deaths) - Cantabria', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Cantabria','Variation rate','Variation rate (daily deaths) - Cantabria', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Cantabria':
         st.write("### Variation rate (accumulated daily deaths) - Cantabria")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Cantabria','Variation rate','Variation rate (accumulated daily deaths) - Cantabria', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Cantabria','Variation rate','Variation rate (accumulated daily deaths) - Cantabria', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Castilla y Leon':
         st.write("### Daily cases - Castilla y Leon")
-        createSinglePlot(df_global, 'Day', 'Cases_Castilla_y_Leon','Cases','Daily cases - Castilla y Leon', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Castilla_y_Leon','Cases','Daily cases - Castilla y Leon', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Castilla y Leon':
         st.write("### Accumulated daily cases - Castilla y Leon")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Castilla_y_Leon','Cases','Accumulated daily cases - Castilla y Leon', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Castilla_y_Leon','Cases','Accumulated daily cases - Castilla y Leon', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Castilla y Leon':
         st.write("### Variation rate (daily cases) - Castilla y Leon")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Castilla_y_Leon','Variation rate','Variation rate (daily cases) - Castilla y Leon', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Castilla_y_Leon','Variation rate','Variation rate (daily cases) - Castilla y Leon', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Castilla y Leon':
         st.write("### Variation rate (accumulated daily cases) - Castilla y Leon")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Castilla_y_Leon','Variation rate','Variation rate (accumulated daily cases) - Castilla y Leon', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Castilla_y_Leon','Variation rate','Variation rate (accumulated daily cases) - Castilla y Leon', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Castilla y Leon':
         st.write("### Daily deaths - Castilla y Leon")
-        createSinglePlot(df_global, 'Day', 'Deaths_Castilla_y_Leon','Deaths','Daily deaths - Castilla y Leon', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Castilla_y_Leon','Deaths','Daily deaths - Castilla y Leon', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Castilla y Leon':
         st.write("### Accumulated daily deaths - Castilla y Leon")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Castilla_y_Leon','Deaths','Accumulated daily deaths - Castilla y Leon', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Castilla_y_Leon','Deaths','Accumulated daily deaths - Castilla y Leon', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Castilla y Leon':
         st.write("### Variation rate (daily deaths) - Castilla y Leon")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Castilla_y_Leon','Variation rate','Variation rate (daily deaths) - Castilla y Leon', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Castilla_y_Leon','Variation rate','Variation rate (daily deaths) - Castilla y Leon', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Castilla y Leon':
         st.write("### Variation rate (accumulated daily deaths) - Castilla y Leon")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Castilla_y_Leon','Variation rate','Variation rate (accumulated daily deaths) - Castilla y Leon', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Castilla_y_Leon','Variation rate','Variation rate (accumulated daily deaths) - Castilla y Leon', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Castilla La Mancha':
         st.write("### Daily cases - Castilla La Mancha")
-        createSinglePlot(df_global, 'Day', 'Cases_Castilla_La_Mancha','Cases','Daily cases - Castilla La Mancha', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Castilla_La_Mancha','Cases','Daily cases - Castilla La Mancha', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Castilla La Mancha':
         st.write("### Accumulated daily cases - Castilla La Mancha")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Castilla_La_Mancha','Cases','Accumulated daily cases - Castilla La Mancha', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Castilla_La_Mancha','Cases','Accumulated daily cases - Castilla La Mancha', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Castilla La Mancha':
         st.write("### Variation rate (daily cases) - Castilla La Mancha")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Castilla_La_Mancha','Variation rate','Variation rate (daily cases) - Castilla La Mancha', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Castilla_La_Mancha','Variation rate','Variation rate (daily cases) - Castilla La Mancha', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Castilla La Mancha':
         st.write("### Variation rate (accumulated daily cases) - Castilla La Mancha")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Castilla_La_Mancha','Variation rate','Variation rate (accumulated daily cases) - Castilla La Mancha', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Castilla_La_Mancha','Variation rate','Variation rate (accumulated daily cases) - Castilla La Mancha', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Castilla La Mancha':
         st.write("### Daily deaths - Castilla La Mancha")
-        createSinglePlot(df_global, 'Day', 'Deaths_Castilla La Mancha','Deaths','Daily deaths - Castilla La Mancha', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Castilla La Mancha','Deaths','Daily deaths - Castilla La Mancha', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Castilla La Mancha':
         st.write("### Accumulated daily deaths - Castilla La Mancha")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Castilla_La_Mancha','Deaths','Accumulated daily deaths - Castilla La Mancha', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Castilla_La_Mancha','Deaths','Accumulated daily deaths - Castilla La Mancha', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Castilla La Mancha':
         st.write("### Variation rate (daily deaths) - Castilla La Mancha")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Castilla_La_Mancha','Variation rate','Variation rate (daily deaths) - Castilla La Mancha', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Castilla_La_Mancha','Variation rate','Variation rate (daily deaths) - Castilla La Mancha', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Castilla La Mancha':
         st.write("### Variation rate (accumulated daily deaths) - Castilla La Mancha")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Castilla_La_Mancha','Variation rate','Variation rate (accumulated daily deaths) - Castilla La Mancha', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Castilla_La_Mancha','Variation rate','Variation rate (accumulated daily deaths) - Castilla La Mancha', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Catalunya':
         st.write("### Daily cases - Catalunya")
-        createSinglePlot(df_global, 'Day', 'Cases_Catalunya','Cases','Daily cases - Catalunya', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Catalunya','Cases','Daily cases - Catalunya', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Catalunya':
         st.write("### Accumulated daily cases - Catalunya")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Catalunya','Cases','Accumulated daily cases - Catalunya', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Catalunya','Cases','Accumulated daily cases - Catalunya', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Catalunya':
         st.write("### Variation rate (daily cases) - Catalunya")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Catalunya','Variation rate','Variation rate (daily cases) - Catalunya', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Catalunya','Variation rate','Variation rate (daily cases) - Catalunya', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Catalunya':
         st.write("### Variation rate (accumulated daily cases) - Catalunya")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Catalunya','Variation rate','Variation rate (accumulated daily cases) - Catalunya', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Catalunya','Variation rate','Variation rate (accumulated daily cases) - Catalunya', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Catalunya':
         st.write("### Daily deaths - Catalunya")
-        createSinglePlot(df_global, 'Day', 'Deaths_Catalunya','Deaths','Daily deaths - Catalunya', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Catalunya','Deaths','Daily deaths - Catalunya', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Catalunya':
         st.write("### Accumulated daily deaths - Catalunya")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Catalunya','Deaths','Accumulated daily deaths - Catalunya', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Catalunya','Deaths','Accumulated daily deaths - Catalunya', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Catalunya':
         st.write("### Variation rate (daily deaths) - Catalunya")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Catalunya','Variation rate','Variation rate (daily deaths) - Catalunya', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Catalunya','Variation rate','Variation rate (daily deaths) - Catalunya', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Catalunya':
         st.write("### Variation rate (accumulated daily deaths) - Catalunya")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Catalunya','Variation rate','Variation rate (accumulated daily deaths) - Catalunya', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Catalunya','Variation rate','Variation rate (accumulated daily deaths) - Catalunya', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Ceuta':
         st.write("### Daily cases - Ceuta")
-        createSinglePlot(df_global, 'Day', 'Cases_Ceuta','Cases','Daily cases - Ceuta', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Ceuta','Cases','Daily cases - Ceuta', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Ceuta':
         st.write("### Accumulated daily cases - Ceuta")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Ceuta','Cases','Accumulated daily cases - Ceuta', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Ceuta','Cases','Accumulated daily cases - Ceuta', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Ceuta':
         st.write("### Variation rate (daily cases) - Ceuta")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Ceuta','Variation rate','Variation rate (daily cases) - Ceuta', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Ceuta','Variation rate','Variation rate (daily cases) - Ceuta', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Ceuta':
         st.write("### Variation rate (accumulated daily cases) - Ceuta")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Ceuta','Variation rate','Variation rate (accumulated daily cases) - Ceuta', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Ceuta','Variation rate','Variation rate (accumulated daily cases) - Ceuta', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Ceuta':
         st.write("### Daily deaths - Ceuta")
-        createSinglePlot(df_global, 'Day', 'Deaths_Ceuta','Deaths','Daily deaths - Ceuta', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Ceuta','Deaths','Daily deaths - Ceuta', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Ceuta':
         st.write("### Accumulated daily deaths - Ceuta")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Ceuta','Deaths','Accumulated daily deaths - Ceuta', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Ceuta','Deaths','Accumulated daily deaths - Ceuta', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Ceuta':
         st.write("### Variation rate (daily deaths) - Ceuta")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Ceuta','Variation rate','Variation rate (daily deaths) - Ceuta', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Ceuta','Variation rate','Variation rate (daily deaths) - Ceuta', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Ceuta':
         st.write("### Variation rate (accumulated daily deaths) - Ceuta")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Ceuta','Variation rate','Variation rate (accumulated daily deaths) - Ceuta', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Ceuta','Variation rate','Variation rate (accumulated daily deaths) - Ceuta', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Comunidad Valenciana':
         st.write("### Daily cases - Comunidad Valenciana")
-        createSinglePlot(df_global, 'Day', 'Cases_Comunidad_Valenciana','Cases','Daily cases - Comunidad Valenciana', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Comunidad_Valenciana','Cases','Daily cases - Comunidad Valenciana', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Comunidad Valenciana':
         st.write("### Accumulated daily cases - Comunidad Valenciana")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Comunidad_Valenciana','Cases','Accumulated daily cases - Comunidad Valenciana', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Comunidad_Valenciana','Cases','Accumulated daily cases - Comunidad Valenciana', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Comunidad Valenciana':
         st.write("### Variation rate (daily cases) - Comunidad Valenciana")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Comunidad_Valenciana','Variation rate','Variation rate (daily cases) - Comunidad Valenciana', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Comunidad_Valenciana','Variation rate','Variation rate (daily cases) - Comunidad Valenciana', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Comunidad Valenciana':
         st.write("### Variation rate (accumulated daily cases) - Comunidad Valenciana")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Comunidad_Valenciana','Variation rate','Variation rate (accumulated daily cases) - Comunidad Valenciana', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Comunidad_Valenciana','Variation rate','Variation rate (accumulated daily cases) - Comunidad Valenciana', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Comunidad Valenciana':
         st.write("### Daily deaths - Comunidad Valenciana")
-        createSinglePlot(df_global, 'Day', 'Deaths_Comunidad_Valenciana','Deaths','Daily deaths - Comunidad Valenciana', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Comunidad_Valenciana','Deaths','Daily deaths - Comunidad Valenciana', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Comunidad Valenciana':
         st.write("### Accumulated daily deaths - Comunidad Valenciana")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Comunidad_Valenciana','Deaths','Accumulated daily deaths - Comunidad Valenciana', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Comunidad_Valenciana','Deaths','Accumulated daily deaths - Comunidad Valenciana', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Comunidad Valenciana':
         st.write("### Variation rate (daily deaths) - Comunidad Valenciana")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Comunidad_Valenciana','Variation rate','Variation rate (daily deaths) - Comunidad Valenciana', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Comunidad_Valenciana','Variation rate','Variation rate (daily deaths) - Comunidad Valenciana', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Comunidad Valenciana':
         st.write("### Variation rate (accumulated daily deaths) - Comunidad Valenciana")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Comunidad_Valenciana','Variation rate','Variation rate (accumulated daily deaths) - Comunidad Valenciana', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Comunidad_Valenciana','Variation rate','Variation rate (accumulated daily deaths) - Comunidad Valenciana', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Extremadura':
         st.write("### Daily cases - Extremadura")
-        createSinglePlot(df_global, 'Day', 'Cases_Extremadura','Cases','Daily cases - Extremadura', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Extremadura','Cases','Daily cases - Extremadura', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Extremadura':
         st.write("### Accumulated daily cases - Extremadura")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Extremadura','Cases','Accumulated daily cases - Extremadura', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Extremadura','Cases','Accumulated daily cases - Extremadura', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Extremadura':
         st.write("### Variation rate (daily cases) - Extremadura")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Extremadura','Variation rate','Variation rate (daily cases) - Extremadura', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Extremadura','Variation rate','Variation rate (daily cases) - Extremadura', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Extremadura':
         st.write("### Variation rate (accumulated daily cases) - Extremadura")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Extremadura','Variation rate','Variation rate (accumulated daily cases) - Extremadura', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Extremadura','Variation rate','Variation rate (accumulated daily cases) - Extremadura', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Extremadura':
         st.write("### Daily deaths - Extremadura")
-        createSinglePlot(df_global, 'Day', 'Deaths_Extremadura','Deaths','Daily deaths - Extremadura', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Extremadura','Deaths','Daily deaths - Extremadura', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Extremadura':
         st.write("### Accumulated daily deaths - Extremadura")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Extremadura','Deaths','Accumulated daily deaths - Extremadura', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Extremadura','Deaths','Accumulated daily deaths - Extremadura', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Extremadura':
         st.write("### Variation rate (daily deaths) - Extremadura")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Extremadura','Variation rate','Variation rate (daily deaths) - Extremadura', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Extremadura','Variation rate','Variation rate (daily deaths) - Extremadura', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Extremadura':
         st.write("### Variation rate (accumulated daily deaths) - Extremadura")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Extremadura','Variation rate','Variation rate (accumulated daily deaths) - Extremadura', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Extremadura','Variation rate','Variation rate (accumulated daily deaths) - Extremadura', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Galicia':
         st.write("### Daily cases - Galicia")
-        createSinglePlot(df_global, 'Day', 'Cases_Galicia','Cases','Daily cases - Galicia', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Galicia','Cases','Daily cases - Galicia', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Galicia':
         st.write("### Accumulated daily cases - Galicia")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Galicia','Cases','Accumulated daily cases - Galicia', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Galicia','Cases','Accumulated daily cases - Galicia', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Galicia':
         st.write("### Variation rate (daily cases) - Galicia")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Galicia','Variation rate','Variation rate (daily cases) - Galicia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Galicia','Variation rate','Variation rate (daily cases) - Galicia', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Galicia':
         st.write("### Variation rate (accumulated daily cases) - Galicia")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Galicia','Variation rate','Variation rate (accumulated daily cases) - Galicia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Galicia','Variation rate','Variation rate (accumulated daily cases) - Galicia', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Galicia':
         st.write("### Daily deaths - Galicia")
-        createSinglePlot(df_global, 'Day', 'Deaths_Galicia','Deaths','Daily deaths - Galicia', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Galicia','Deaths','Daily deaths - Galicia', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Galicia':
         st.write("### Accumulated daily deaths - Galicia")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Galicia','Deaths','Accumulated daily deaths - Galicia', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Galicia','Deaths','Accumulated daily deaths - Galicia', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Galicia':
         st.write("### Variation rate (daily deaths) - Galicia")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Galicia','Variation rate','Variation rate (daily deaths) - Galicia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Galicia','Variation rate','Variation rate (daily deaths) - Galicia', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Galicia':
         st.write("### Variation rate (accumulated daily deaths) - Galicia")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Galicia','Variation rate','Variation rate (accumulated daily deaths) - Galicia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Galicia','Variation rate','Variation rate (accumulated daily deaths) - Galicia', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Islas Baleares':
         st.write("### Daily cases - Islas Baleares")
-        createSinglePlot(df_global, 'Day', 'Cases_Islas_Baleares','Cases','Daily cases - Islas Baleares', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Islas_Baleares','Cases','Daily cases - Islas Baleares', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Islas Baleares':
         st.write("### Accumulated daily cases - Islas Baleares")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Islas_Baleares','Cases','Accumulated daily cases - Islas Baleares', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Islas_Baleares','Cases','Accumulated daily cases - Islas Baleares', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Islas Baleares':
         st.write("### Variation rate (daily cases) - Islas Baleares")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Islas_Baleares','Variation rate','Variation rate (daily cases) - Islas Baleares', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Islas_Baleares','Variation rate','Variation rate (daily cases) - Islas Baleares', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Islas Baleares':
         st.write("### Variation rate (accumulated daily cases) - Islas Baleares")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Islas_Baleares','Variation rate','Variation rate (accumulated daily cases) - Islas Baleares', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Islas_Baleares','Variation rate','Variation rate (accumulated daily cases) - Islas Baleares', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Islas Baleares':
         st.write("### Daily deaths - Islas Baleares")
-        createSinglePlot(df_global, 'Day', 'Deaths_Islas_Baleares','Deaths','Daily deaths - Islas Baleares', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Islas_Baleares','Deaths','Daily deaths - Islas Baleares', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Islas Baleares':
         st.write("### Accumulated daily deaths - Islas Baleares")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Islas_Baleares','Deaths','Accumulated daily deaths - Islas Baleares', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Islas_Baleares','Deaths','Accumulated daily deaths - Islas Baleares', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Islas Baleares':
         st.write("### Variation rate (daily deaths) - Islas Baleares")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Islas_Baleares','Variation rate','Variation rate (daily deaths) - Islas Baleares', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Islas_Baleares','Variation rate','Variation rate (daily deaths) - Islas Baleares', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Islas Baleares':
         st.write("### Variation rate (accumulated daily deaths) - Islas Baleares")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Islas_Baleares','Variation rate','Variation rate (accumulated daily deaths) - Islas Baleares', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Islas_Baleares','Variation rate','Variation rate (accumulated daily deaths) - Islas Baleares', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - La Rioja':
         st.write("### Daily cases - La Rioja")
-        createSinglePlot(df_global, 'Day', 'Cases_La_Rioja','Cases','Daily cases - La Rioja', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_La_Rioja','Cases','Daily cases - La Rioja', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - La Rioja':
         st.write("### Accumulated daily cases - La Rioja")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_La_Rioja','Cases','Accumulated daily cases - La Rioja', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_La_Rioja','Cases','Accumulated daily cases - La Rioja', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - La Rioja':
         st.write("### Variation rate (daily cases) - La Rioja")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_La_Rioja','Variation rate','Variation rate (daily cases) - La Rioja', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_La_Rioja','Variation rate','Variation rate (daily cases) - La Rioja', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - La Rioja':
         st.write("### Variation rate (accumulated daily cases) - La Rioja")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_La_Rioja','Variation rate','Variation rate (accumulated daily cases) - La Rioja', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_La_Rioja','Variation rate','Variation rate (accumulated daily cases) - La Rioja', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - La Rioja':
         st.write("### Daily deaths - La Rioja")
-        createSinglePlot(df_global, 'Day', 'Deaths_La_Rioja','Deaths','Daily deaths - La Rioja', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_La_Rioja','Deaths','Daily deaths - La Rioja', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - La Rioja':
         st.write("### Accumulated daily deaths - La Rioja")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_La_Rioja','Deaths','Accumulated daily deaths - La Rioja', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_La_Rioja','Deaths','Accumulated daily deaths - La Rioja', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - La Rioja':
         st.write("### Variation rate (daily deaths) - La Rioja")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_La_Rioja','Variation rate','Variation rate (daily deaths) - La Rioja', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_La_Rioja','Variation rate','Variation rate (daily deaths) - La Rioja', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - La Rioja':
         st.write("### Variation rate (accumulated daily deaths) - La Rioja")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_La_Rioja','Variation rate','Variation rate (accumulated daily deaths) - La Rioja', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_La_Rioja','Variation rate','Variation rate (accumulated daily deaths) - La Rioja', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Madrid':
         st.write("### Daily cases - Madrid")
-        createSinglePlot(df_global, 'Day', 'Cases_Madrid','Cases','Daily cases - Madrid', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Madrid','Cases','Daily cases - Madrid', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Madrid':
         st.write("### Accumulated daily cases - Madrid")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Madrid','Cases','Accumulated daily cases - Madrid', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Madrid','Cases','Accumulated daily cases - Madrid', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Madrid':
         st.write("### Variation rate (daily cases) - Madrid")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Madrid','Variation rate','Variation rate (daily cases) - Madrid', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Madrid','Variation rate','Variation rate (daily cases) - Madrid', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Madrid':
         st.write("### Variation rate (accumulated daily cases) - Madrid")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Madrid','Variation rate','Variation rate (accumulated daily cases) - Madrid', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Madrid','Variation rate','Variation rate (accumulated daily cases) - Madrid', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Madrid':
         st.write("### Daily deaths - Madrid")
-        createSinglePlot(df_global, 'Day', 'Deaths_Madrid','Deaths','Daily deaths - Madrid', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Madrid','Deaths','Daily deaths - Madrid', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Madrid':
         st.write("### Accumulated daily deaths - Madrid")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Madrid','Deaths','Accumulated daily deaths - Madrid', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Madrid','Deaths','Accumulated daily deaths - Madrid', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Madrid':
         st.write("### Variation rate (daily deaths) - Madrid")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Madrid','Variation rate','Variation rate (daily deaths) - Madrid', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Madrid','Variation rate','Variation rate (daily deaths) - Madrid', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Madrid':
         st.write("### Variation rate (accumulated daily deaths) - Madrid")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Madrid','Variation rate','Variation rate (accumulated daily deaths) - Madrid', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Madrid','Variation rate','Variation rate (accumulated daily deaths) - Madrid', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Melilla':
         st.write("### Daily cases - Melilla")
-        createSinglePlot(df_global, 'Day', 'Cases_Melilla','Cases','Daily cases - Melilla', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Melilla','Cases','Daily cases - Melilla', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Melilla':
         st.write("### Accumulated daily cases - Melilla")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Melilla','Cases','Accumulated daily cases - Melilla', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Melilla','Cases','Accumulated daily cases - Melilla', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Melilla':
         st.write("### Variation rate (daily cases) - Melilla")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Melilla','Variation rate','Variation rate (daily cases) - Melilla', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Melilla','Variation rate','Variation rate (daily cases) - Melilla', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Melilla':
         st.write("### Variation rate (accumulated daily cases) - Melilla")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Melilla','Variation rate','Variation rate (accumulated daily cases) - Melilla', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Melilla','Variation rate','Variation rate (accumulated daily cases) - Melilla', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Melilla':
         st.write("### Daily deaths - Melilla")
-        createSinglePlot(df_global, 'Day', 'Deaths_Melilla','Deaths','Daily deaths - Melilla', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Melilla','Deaths','Daily deaths - Melilla', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Melilla':
         st.write("### Accumulated daily deaths - Melilla")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Melilla','Deaths','Accumulated daily deaths - Melilla', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Melilla','Deaths','Accumulated daily deaths - Melilla', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Melilla':
         st.write("### Variation rate (daily deaths) - Melilla")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Melilla','Variation rate','Variation rate (daily deaths) - Melilla', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Melilla','Variation rate','Variation rate (daily deaths) - Melilla', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Melilla':
         st.write("### Variation rate (accumulated daily deaths) - Melilla")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Melilla','Variation rate','Variation rate (accumulated daily deaths) - Melilla', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Melilla','Variation rate','Variation rate (accumulated daily deaths) - Melilla', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Murcia':
         st.write("### Daily cases - Murcia")
-        createSinglePlot(df_global, 'Day', 'Cases_Murcia','Cases','Daily cases - Murcia', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Murcia','Cases','Daily cases - Murcia', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Murcia':
         st.write("### Accumulated daily cases - Murcia")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Murcia','Cases','Accumulated daily cases - Murcia', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Murcia','Cases','Accumulated daily cases - Murcia', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Murcia':
         st.write("### Variation rate (daily cases) - Murcia")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Murcia','Variation rate','Variation rate (daily cases) - Murcia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Murcia','Variation rate','Variation rate (daily cases) - Murcia', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Murcia':
         st.write("### Variation rate (accumulated daily cases) - Murcia")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Murcia','Variation rate','Variation rate (accumulated daily cases) - Murcia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Murcia','Variation rate','Variation rate (accumulated daily cases) - Murcia', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Murcia':
         st.write("### Daily deaths - Murcia")
-        createSinglePlot(df_global, 'Day', 'Deaths_Murcia','Deaths','Daily deaths - Murcia', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Murcia','Deaths','Daily deaths - Murcia', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Murcia':
         st.write("### Accumulated daily deaths - Murcia")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Murcia','Deaths','Accumulated daily deaths - Murcia', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Murcia','Deaths','Accumulated daily deaths - Murcia', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Murcia':
         st.write("### Variation rate (daily deaths) - Murcia")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Murcia','Variation rate','Variation rate (daily deaths) - Murcia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Murcia','Variation rate','Variation rate (daily deaths) - Murcia', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Murcia':
         st.write("### Variation rate (accumulated daily deaths) - Murcia")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Murcia','Variation rate','Variation rate (accumulated daily deaths) - Murcia', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Murcia','Variation rate','Variation rate (accumulated daily deaths) - Murcia', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Navarra':
         st.write("### Daily cases - Navarra")
-        createSinglePlot(df_global, 'Day', 'Cases_Navarra','Cases','Daily cases - Navarra', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Navarra','Cases','Daily cases - Navarra', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Navarra':
         st.write("### Accumulated daily cases - Navarra")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Navarra','Cases','Accumulated daily cases - Navarra', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Navarra','Cases','Accumulated daily cases - Navarra', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Navarra':
         st.write("### Variation rate (daily cases) - Navarra")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Navarra','Variation rate','Variation rate (daily cases) - Navarra', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Navarra','Variation rate','Variation rate (daily cases) - Navarra', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Navarra':
         st.write("### Variation rate (accumulated daily cases) - Navarra")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Navarra','Variation rate','Variation rate (accumulated daily cases) - Navarra', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Navarra','Variation rate','Variation rate (accumulated daily cases) - Navarra', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Navarra':
         st.write("### Daily deaths - Navarra")
-        createSinglePlot(df_global, 'Day', 'Deaths_Navarra','Deaths','Daily deaths - Navarra', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Navarra','Deaths','Daily deaths - Navarra', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Navarra':
         st.write("### Accumulated daily deaths - Navarra")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Navarra','Deaths','Accumulated daily deaths - Navarra', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Navarra','Deaths','Accumulated daily deaths - Navarra', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Navarra':
         st.write("### Variation rate (daily deaths) - Navarra")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Navarra','Variation rate','Variation rate (daily deaths) - Navarra', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Navarra','Variation rate','Variation rate (daily deaths) - Navarra', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Navarra':
         st.write("### Variation rate (accumulated daily deaths) - Navarra")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Navarra','Variation rate','Variation rate (accumulated daily deaths) - Navarra', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Navarra','Variation rate','Variation rate (accumulated daily deaths) - Navarra', 'Variation rate (%)','linear', speed)
         
     elif page == 'Daily cases - Pais Vasco':
         st.write("### Daily cases - Pais Vasco")
-        createSinglePlot(df_global, 'Day', 'Cases_Pais_Vasco','Cases','Daily cases - Pais Vasco', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'Cases_Pais_Vasco','Cases','Daily cases - Pais Vasco', 'Cases','log', speed)
 
     elif page == 'Accumulated daily cases - Pais Vasco':
         st.write("### Accumulated daily cases - Pais Vasco")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_Pais_Vasco','Cases','Accumulated daily cases - Pais Vasco', 'Cases','log')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_Pais_Vasco','Cases','Accumulated daily cases - Pais Vasco', 'Cases','log', speed)
 
     elif page == 'Variation rate (daily cases) - Pais Vasco':
         st.write("### Variation rate (daily cases) - Pais Vasco")
-        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Pais_Vasco','Variation rate','Variation rate (daily cases) - Pais Vasco', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Cases_VariationRate_Pais_Vasco','Variation rate','Variation rate (daily cases) - Pais Vasco', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily cases) - Pais Vasco':
         st.write("### Variation rate (accumulated daily cases) - Pais Vasco")
-        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Pais_Vasco','Variation rate','Variation rate (accumulated daily cases) - Pais Vasco', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'CasesAccum_VariationRate_Pais_Vasco','Variation rate','Variation rate (accumulated daily cases) - Pais Vasco', 'Variation rate (%)','linear', speed)
 
     elif page == 'Daily deaths - Pais Vasco':
         st.write("### Daily deaths - Pais Vasco")
-        createSinglePlot(df_global, 'Day', 'Deaths_Pais_Vasco','Deaths','Daily deaths - Pais Vasco', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'Deaths_Pais_Vasco','Deaths','Daily deaths - Pais Vasco', 'Deaths','log', speed)
 
     elif page == 'Accumulated daily deaths - Pais Vasco':
         st.write("### Accumulated daily deaths - Pais Vasco")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_Pais_Vasco','Deaths','Accumulated daily deaths - Pais Vasco', 'Deaths','log')
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_Pais_Vasco','Deaths','Accumulated daily deaths - Pais Vasco', 'Deaths','log', speed)
 
     elif page == 'Variation rate (daily deaths) - Pais Vasco':
         st.write("### Variation rate (daily deaths) - Pais Vasco")
-        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Pais_Vasco','Variation rate','Variation rate (daily deaths) - Pais Vasco', 'Variation rate (%)','linear')
+        createSinglePlot(df_global, 'Day', 'Deaths_VariationRate_Pais_Vasco','Variation rate','Variation rate (daily deaths) - Pais Vasco', 'Variation rate (%)','linear', speed)
 
     elif page == 'Variation rate (accumulated daily deaths) - Pais Vasco':
         st.write("### Variation rate (accumulated daily deaths) - Pais Vasco")
-        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Pais_Vasco','Variation rate','Variation rate (accumulated daily deaths) - Pais Vasco', 'Variation rate (%)','linear')
-        
-
+        createSinglePlot(df_global, 'Day', 'DeathsAccum_VariationRate_Pais_Vasco','Variation rate','Variation rate (accumulated daily deaths) - Pais Vasco', 'Variation rate (%)','linear', speed)
+    
 if __name__ == '__main__':
     main()
