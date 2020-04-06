@@ -1055,10 +1055,12 @@ def main():
 
     if page == 'Table with the results obtained':
         df_table = df_global
+        st.line_chart(df_table)
+
         df_table = df_table.set_index("Period")
+
         data_table = df_table.loc[df_table.index]
         st.write("### Table with the results obtained to date " + TodaysDate, data_table.sort_index())
-        st.line_chart(data_table)
 
 
     elif page == 'Spain':
