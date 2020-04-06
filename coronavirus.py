@@ -865,8 +865,6 @@ def main():
 
     df_global = getData()
 
-    st.line_chart(df_global)
-
     page = st.sidebar.selectbox("Choose a page", [
         'Table with the results obtained',
         'Spain',
@@ -1060,7 +1058,8 @@ def main():
         df_table = df_table.set_index("Period")
         data_table = df_table.loc[df_table.index]
         st.write("### Table with the results obtained to date " + TodaysDate, data_table.sort_index())
-        # Select only the days after the first 50 deaths in Spain
+        st.line_chart(data_table)
+
 
     elif page == 'Spain':
         st.write("### Cases, deaths and recoveries accumulated in Spain")
