@@ -790,7 +790,7 @@ def createOverviewPlot(df_global, yCases, yDeaths, yRecovered, title, yScale, sp
     chart = st.line_chart(chart_data.iloc[:1])
     for i in range(2,df_global['Day'].count()):
         chart.add_rows(chart_data.iloc[:i])
-        time.speed(speed)
+        time.sleep(speed)
     chart.add_rows(chart_data.tail(1))
         
 
@@ -837,7 +837,7 @@ def createSinglePlot(df_global, xData, yData, labelData, title, yLabel, yScale, 
     for i in range(2,df_global['Day'].count()):
         lastRows = datas.iloc[:i]
         chart.add_rows(lastRows)
-        time.speed(speed)
+        time.sleep(speed)
     chart.add_rows(datas[yData].tail(1))
 
     if yScale == 'log':
@@ -867,7 +867,7 @@ def main():
     st.sidebar.markdown('### Spain and CCAA')
 
     option = st.sidebar.selectbox(
-        'What region do you want to see??',
+        'What region do you want to see?',
         (
             'Spain',
             'Andalucia',
